@@ -129,7 +129,7 @@
           <div>
             <span class="bg-white/20 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Live Overview</span>
             <h2 class="text-2xl sm:text-3xl font-black mt-2">Good evening, Ayu! 🦔🎀</h2>
-            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & total {{ academyArticles.length }} modul SOP terdaftar.</p>
+            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & total omset bulan ini Rp{{ currentMonthReport.revenue.toLocaleString('id-ID') }}.</p>
           </div>
           <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-left md:text-right w-full md:w-auto">
             <div class="text-[10px] text-rose-100 uppercase font-semibold">Net Profit Bulan Ini</div>
@@ -173,7 +173,7 @@
           </div>
         </div>
 
-        <!-- Jadwal Mendatang & Quick Action -->
+        <!-- Jadwal Mendatang & Quick POS Actions -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
             <div class="flex items-center justify-between">
@@ -479,12 +479,21 @@
                   <span class="text-emerald-700">Rp{{ (prod.sellingPrice - calculateTotalHpp(prod.materials)).toLocaleString('id-ID') }} ({{ calculateMargin(prod.sellingPrice, calculateTotalHpp(prod.materials)) }}%)</span>
                 </div>
               </div>
+
+              <div class="mt-3">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Resep Bahan yang Berkurang Otomatis:</span>
+                <div class="flex flex-wrap gap-1">
+                  <span v-for="(mat, idx) in prod.materials" :key="idx" class="text-[10px] bg-rose-50/60 border border-rose-100 px-2 py-0.5 rounded-lg text-slate-700">
+                    {{ mat.name }} ({{ mat.qty || 1 }} {{ mat.unit || 'unit' }}) - Rp{{ mat.cost }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 6. TAB: INVENTORY -->
+      <!-- 6. TAB: INVENTORY & RESTOCK EXPENSE TRACKER (WITH REKAP & HISTORY) -->
       <div v-if="activeTab === 'inventory'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -499,6 +508,7 @@
           </button>
         </div>
 
+        <!-- Inventory Cards Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div v-for="inv in inventory" :key="inv.id" class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-3 flex flex-col justify-between" :class="inv.stock <= inv.minStock ? 'border-amber-300 ring-1 ring-amber-200' : ''">
             <div>
@@ -548,9 +558,79 @@
             </div>
           </div>
         </div>
+
+        <!-- SEKSI BARU: HISTORY & REKAP RESTOCK (HARIAN/MINGGUAN/BULANAN/TAHUNAN) -->
+        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 class="font-bold text-slate-800 text-base">📋 Riwayat & Rekap Restock Bahan</h3>
+              <p class="text-xs text-slate-400">Pantau pengeluaran belanja bahan dan jumlah unit yang masuk per periode.</p>
+            </div>
+            
+            <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
+              <button 
+                v-for="p in ['daily', 'weekly', 'monthly', 'yearly']" 
+                :key="p"
+                @click="restockFilterPeriod = p"
+                :class="restockFilterPeriod === p ? 'bg-white text-rose-600 font-bold shadow-xs' : 'text-slate-500 font-medium'"
+                class="px-3 py-1.5 rounded-xl text-xs capitalize transition-all whitespace-nowrap">
+                {{ p === 'daily' ? 'Harian' : p === 'weekly' ? 'Mingguan' : p === 'monthly' ? 'Bulanan' : 'Tahunan' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Cards Rekap Restock -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-4 rounded-2xl bg-rose-50/60 border border-rose-100 space-y-1">
+              <span class="text-[11px] font-bold text-slate-400 uppercase">Total Belanja Restock</span>
+              <div class="text-xl font-black text-rose-600">Rp{{ restockSummary.totalCost.toLocaleString('id-ID') }}</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+              <span class="text-[11px] font-bold text-slate-400 uppercase">Frekuensi Pembelian</span>
+              <div class="text-xl font-black text-slate-800">{{ restockSummary.count }} Kali</div>
+            </div>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+              <span class="text-[11px] font-bold text-slate-400 uppercase">Total Unit/Bahan Masuk</span>
+              <div class="text-xl font-black text-slate-800">{{ restockSummary.totalQty }} Item</div>
+            </div>
+          </div>
+
+          <!-- Table History Restock -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-400 uppercase text-[10px] font-bold border-b border-slate-100">
+                <tr>
+                  <th class="py-3 px-4">Tanggal</th>
+                  <th class="py-3 px-4">Nama Bahan</th>
+                  <th class="py-3 px-4">Jumlah Tambahan</th>
+                  <th class="py-3 px-4">Biaya Beli (Rp)</th>
+                  <th class="py-3 px-4">Catatan / Supplier</th>
+                  <th class="py-3 px-4 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-50">
+                <tr v-if="filteredRestockList.length === 0">
+                  <td colspan="6" class="text-center py-6 text-slate-400 italic">Tidak ada transaksi restock pada periode ini.</td>
+                </tr>
+                <tr v-for="r in filteredRestockList" :key="r.id" class="hover:bg-slate-50/60">
+                  <td class="py-3 px-4 font-bold text-slate-700">{{ r.date }}</td>
+                  <td class="py-3 px-4 font-bold text-slate-800">{{ r.itemName }}</td>
+                  <td class="py-3 px-4 font-mono text-emerald-600 font-bold">+{{ r.qty }} {{ r.unit }}</td>
+                  <td class="py-3 px-4 font-bold text-rose-600">Rp{{ r.cost.toLocaleString('id-ID') }}</td>
+                  <td class="py-3 px-4 text-slate-500">{{ r.notes || '-' }}</td>
+                  <td class="py-3 px-4 text-right">
+                    <button @click="deleteRestockHistory(r.id)" class="text-slate-300 hover:text-rose-500 p-1 text-xs" title="Hapus Riwayat">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      <!-- 7. TAB: PIXIE ACADEMY & SOP (LENGKAP: TAMBAH, EDIT, HAPUS, & FILTER TAGS) -->
+      <!-- 7. TAB: PIXIE ACADEMY & SOP -->
       <div v-if="activeTab === 'academy'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -569,7 +649,6 @@
           </button>
         </div>
 
-        <!-- Filter Tags Kategori -->
         <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
           <button 
             v-for="cat in academyCategories" 
@@ -581,7 +660,6 @@
           </button>
         </div>
 
-        <!-- Grid Modul / Materi -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <div 
             v-for="item in filteredAcademy" 
@@ -594,7 +672,6 @@
                   {{ item.category }}
                 </span>
                 
-                <!-- Action Buttons: Edit & Delete -->
                 <div class="absolute top-3 right-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-md p-1 rounded-xl shadow-xs">
                   <button @click="editAcademy(item)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-rose-600 rounded-lg text-xs" title="Edit Materi">
                     <i class="fa-solid fa-pen-to-square"></i>
@@ -643,7 +720,7 @@
       </button>
     </nav>
 
-    <!-- MODAL RESTOCK -->
+    <!-- MODAL 1: RESTOCK BAHAN -->
     <div v-if="showRestockModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -676,7 +753,140 @@
       </div>
     </div>
 
-    <!-- MODAL CUSTOMER -->
+    <!-- MODAL 2: TAMBAH & EDIT INVENTARIS BAHAN BARU -->
+    <div v-if="showInventoryModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <h3 class="text-base font-bold text-slate-800">{{ isEditingInventory ? 'Edit Bahan Baku' : 'Tambah Bahan Baru' }} 📦</h3>
+          <button @click="showInventoryModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveInventory" class="space-y-3.5 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Nama Bahan</label>
+            <input v-model="inventoryForm.name" type="text" required placeholder="Top Coat Glossy No-Wipe" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Kategori</label>
+              <select v-model="inventoryForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
+                <option>Gel Polish</option>
+                <option>Prep & Liquid</option>
+                <option>Charms & Ribbon</option>
+                <option>Extension Tips</option>
+                <option>Hygiene & Steril</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Satuan Unit</label>
+              <input v-model="inventoryForm.unit" type="text" required placeholder="ml / pcs / botol" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Stok Saat Ini</label>
+              <input v-model.number="inventoryForm.stock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold" />
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Batas Minimum</label>
+              <input v-model.number="inventoryForm.minStock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Cost / Unit (Rp)</label>
+              <input v-model.number="inventoryForm.costPerUnit" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="showInventoryModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Stok</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL 3: TAMBAH & EDIT TREATMENT / HPP -->
+    <div v-if="showProductModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <h3 class="text-base font-bold text-slate-800">{{ isEditingProduct ? 'Edit Treatment & HPP' : 'Tambah Treatment Baru' }} 🧮</h3>
+          <button @click="showProductModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveProduct" class="space-y-3.5 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Nama Layanan</label>
+            <input v-model="productForm.name" type="text" required placeholder="Gel Nail Art Ribbon 3D" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Kategori</label>
+              <select v-model="productForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
+                <option>Gel Manicure</option>
+                <option>Nail Art Custom</option>
+                <option>Softgel Extension</option>
+                <option>Press-On Set</option>
+                <option>Care & Removal</option>
+              </select>
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Durasi (Menit)</label>
+              <input v-model.number="productForm.duration" type="number" required placeholder="90" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+            </div>
+          </div>
+
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Harga Jual Default / Minimum (Rp)</label>
+            <input v-model.number="productForm.sellingPrice" type="number" required placeholder="85000" class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" />
+          </div>
+
+          <!-- Material Builder with qty per usage -->
+          <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-slate-700 text-[11px] uppercase">Bahan Yang Terpakai:</span>
+              <button type="button" @click="addProductMaterial" class="text-rose-500 font-bold hover:underline">+ Tambah Bahan</button>
+            </div>
+            <div v-for="(m, idx) in productForm.materials" :key="idx" class="flex gap-2 items-center">
+              <input v-model="m.name" type="text" placeholder="Bahan" class="p-2 border border-slate-200 rounded-xl flex-1 bg-white" />
+              <input v-model.number="m.qty" type="number" step="0.1" placeholder="Qty" class="p-2 border border-slate-200 rounded-xl w-16 bg-white" title="Jumlah pemakaian" />
+              <input v-model.number="m.cost" type="number" placeholder="Cost" class="p-2 border border-slate-200 rounded-xl w-20 bg-white" />
+              <button type="button" @click="removeProductMaterial(idx)" class="text-slate-400 hover:text-rose-500 p-1">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 space-y-1 text-xs">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Total HPP Material:</span>
+              <span class="font-bold text-slate-800">Rp{{ calculateTotalHpp(productForm.materials).toLocaleString('id-ID') }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Gross Profit Bersih:</span>
+              <span class="font-bold text-emerald-600">Rp{{ (productForm.sellingPrice - calculateTotalHpp(productForm.materials)).toLocaleString('id-ID') }}</span>
+            </div>
+            <div class="flex justify-between font-bold">
+              <span class="text-rose-600">Margin Keuntungan:</span>
+              <span class="text-rose-600">{{ calculateMargin(productForm.sellingPrice, calculateTotalHpp(productForm.materials)) }}%</span>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="showProductModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Layanan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL 4: CUSTOMER -->
     <div v-if="showCustomerModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -693,7 +903,7 @@
       </div>
     </div>
 
-    <!-- MODAL APPOINTMENT -->
+    <!-- MODAL 5: BOOKING APPOINTMENT -->
     <div v-if="showBookingModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -747,7 +957,7 @@
       </div>
     </div>
 
-    <!-- MODAL TAMBAH & EDIT ACADEMY / SOP -->
+    <!-- MODAL 6: TAMBAH & EDIT ACADEMY / SOP -->
     <div v-if="showAcademyModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -797,7 +1007,7 @@
       </div>
     </div>
 
-    <!-- MODAL DETAIL BACA SOP -->
+    <!-- MODAL 7: DETAIL BACA SOP -->
     <div v-if="activeDetailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-start">
@@ -830,7 +1040,7 @@
       </div>
     </div>
 
-    <!-- MODAL STRUK -->
+    <!-- MODAL 8: STRUK INVOICE -->
     <div v-if="activeInvoice" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -871,6 +1081,7 @@
         const activeTab = ref('dashboard');
         const selectedCategory = ref('Semua');
         const reportPeriod = ref('monthly');
+        const restockFilterPeriod = ref('monthly');
         let chartInstance = null;
 
         // Modals
@@ -879,6 +1090,10 @@
         const showBookingModal = ref(false);
         const isEditingAppointment = ref(false);
         const showRestockModal = ref(false);
+        const showProductModal = ref(false);
+        const isEditingProduct = ref(false);
+        const showInventoryModal = ref(false);
+        const isEditingInventory = ref(false);
         const showAcademyModal = ref(false);
         const isEditingAcademy = ref(false);
         const activeDetailModal = ref(null);
@@ -955,7 +1170,7 @@
           { id: 2, customerName: 'Naya Putri', customerPhone: '085712345678', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-08-20', time: '14:00', status: 'Scheduled' },
         ]);
 
-        // 6. DATA: ACADEMY (DENGAN KATEGORI & SISTEM CRUD LENGKAP)
+        // 6. DATA: ACADEMY
         const academyCategories = [
           'Semua', 
           'SOP & Sanitasi', 
@@ -993,20 +1208,6 @@
               'Dehidrasi kuku dengan 99% Isopropyl Alcohol lalu oles primer'
             ],
             proTip: 'Jangan merendam tangan customer dengan air sebelum aplikasi gel.'
-          },
-          {
-            id: 3,
-            title: 'Teknik 3D Emboss Ribbon & Mirror Chrome',
-            category: '3D Art & Ribbon',
-            image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=600&q=80',
-            summary: 'Formula timing cure no-wipe top coat untuk efek cermin liquid metal dan cetak pita 3D ribbon.',
-            steps: [
-              'Cure no-wipe top coat selama tepat 30 detik (Lampu LED 48W)',
-              'Gosokkan bubuk chrome segera selagi permukaan masih hangat',
-              'Bentuk pita menggunakan solid builder clay gel',
-              'Finishing lapisi top coat high-gloss'
-            ],
-            proTip: 'Jika hasil chrome berpasir/glittery, kurangi durasi curing top coat dari 30s ke 20s.'
           }
         ]);
 
@@ -1081,38 +1282,45 @@
         const currentMonthReport = computed(() => getFilteredReport('monthly'));
         const activeReportData = computed(() => getFilteredReport(reportPeriod.value));
 
+        // RESTOCK REKAP COMPUTED UNTUK TAB INVENTARIS
+        const filteredRestockList = computed(() => {
+          const now = new Date('2026-08-20');
+          const todayStr = '2026-08-20';
+          const currentMonthStr = '2026-08';
+          const currentYearStr = '2026';
+
+          if (restockFilterPeriod.value === 'daily') {
+            return restockExpenses.value.filter(r => r.date === todayStr);
+          } else if (restockFilterPeriod.value === 'weekly') {
+            const sevenDaysAgo = new Date(now);
+            sevenDaysAgo.setDate(now.getDate() - 7);
+            return restockExpenses.value.filter(r => new Date(r.date) >= sevenDaysAgo && new Date(r.date) <= now);
+          } else if (restockFilterPeriod.value === 'monthly') {
+            return restockExpenses.value.filter(r => r.date && r.date.startsWith(currentMonthStr));
+          } else {
+            return restockExpenses.value.filter(r => r.date && r.date.startsWith(currentYearStr));
+          }
+        });
+
+        const restockSummary = computed(() => {
+          const list = filteredRestockList.value;
+          return {
+            totalCost: list.reduce((acc, c) => acc + (Number(c.cost) || 0), 0),
+            count: list.length,
+            totalQty: list.reduce((acc, c) => acc + (Number(c.qty) || 0), 0)
+          };
+        });
+
         // CHART RENDERING
         const initChart = () => {
           const ctx = document.getElementById('financialChart');
           if (!ctx) return;
           if (chartInstance) chartInstance.destroy();
 
-          let labels = [];
-          let revenueData = [];
-          let expenseData = [];
-          let profitData = [];
-
-          if (reportPeriod.value === 'daily') {
-            labels = ['Pagi (09-12)', 'Siang (12-15)', 'Sore (15-18)', 'Malam (18-21)'];
-            revenueData = [85000, 150000, 0, 0];
-            expenseData = [0, 0, 50000, 0];
-            profitData = [85000, 150000, -50000, 0];
-          } else if (reportPeriod.value === 'weekly') {
-            labels = ['Jum (14)', 'Sab (15)', 'Min (16)', 'Sen (17)', 'Sel (18)', 'Rab (19)', 'Kam (20)'];
-            revenueData = [0, 120000, 0, 0, 95000, 0, 235000];
-            expenseData = [0, 150000, 0, 0, 120000, 0, 0];
-            profitData = [0, -30000, 0, 0, -25000, 0, 235000];
-          } else if (reportPeriod.value === 'monthly') {
-            labels = ['Minggu 1', 'Minggu 2', 'Minggu 3 (Current)', 'Minggu 4'];
-            revenueData = [850000, 1150000, 1450000, 0];
-            expenseData = [250000, 320000, 270000, 0];
-            profitData = [600000, 830000, 1180000, 0];
-          } else {
-            labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu (Current)'];
-            revenueData = [3200000, 4100000, 4800000, 5200000, 6100000, 6800000, 7100000, 3450000];
-            expenseData = [900000, 1100000, 1200000, 1300000, 1400000, 1500000, 1600000, 270000];
-            profitData = [2300000, 3000000, 3600000, 3900000, 4700000, 5300000, 5500000, 3180000];
-          }
+          let labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu (Current)'];
+          let revenueData = [3200000, 4100000, 4800000, 5200000, 6100000, 6800000, 7100000, 3450000];
+          let expenseData = [900000, 1100000, 1200000, 1300000, 1400000, 1500000, 1600000, 270000];
+          let profitData = [2300000, 3000000, 3600000, 3900000, 4700000, 5300000, 5500000, 3180000];
 
           chartInstance = new Chart(ctx, {
             type: 'bar',
@@ -1127,12 +1335,8 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: {
-                legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11, weight: 'bold' } } }
-              },
-              scales: {
-                y: { ticks: { callback: v => 'Rp' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'jt' : (v / 1000) + 'k') } }
-              }
+              plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11, weight: 'bold' } } } },
+              scales: { y: { ticks: { callback: v => 'Rp' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'jt' : (v / 1000) + 'k') } } }
             }
           });
         };
@@ -1173,7 +1377,13 @@
           showRestockModal.value = false;
         };
 
-        // Customer Actions
+        const deleteRestockHistory = (id) => {
+          if (confirm('Hapus catatan riwayat restock ini?')) {
+            restockExpenses.value = restockExpenses.value.filter(r => r.id !== id);
+          }
+        };
+
+        // CUSTOMER ACTIONS
         const customerForm = ref({ id: null, name: '', phone: '', sizing: '', notes: '' });
         const openAddCustomerModal = () => {
           isEditingCustomer.value = false;
@@ -1300,7 +1510,86 @@
           return `https://wa.me/${phone}?text=${encodeURIComponent('Halo Kak ' + app.customerName + '! Reminder appointment kuku Pixie Studio untuk ' + app.serviceName + ' tgl ' + app.date + ' jam ' + app.time)}`;
         };
 
-        // ACADEMY CRUD ACTIONS (CREATE, EDIT, DELETE)
+        // PRODUCT & HPP ACTIONS
+        const productForm = ref({
+          id: null,
+          name: '',
+          category: 'Nail Art Custom',
+          duration: 60,
+          sellingPrice: 85000,
+          materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }]
+        });
+
+        const openAddProductModal = () => {
+          isEditingProduct.value = false;
+          productForm.value = {
+            id: null,
+            name: '',
+            category: 'Nail Art Custom',
+            duration: 60,
+            sellingPrice: 85000,
+            materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }]
+          };
+          showProductModal.value = true;
+        };
+
+        const editProduct = (p) => {
+          isEditingProduct.value = true;
+          productForm.value = JSON.parse(JSON.stringify(p));
+          showProductModal.value = true;
+        };
+
+        const addProductMaterial = () => productForm.value.materials.push({ name: '', qty: 1, unit: 'pcs', cost: 0 });
+        const removeProductMaterial = (idx) => productForm.value.materials.splice(idx, 1);
+
+        const saveProduct = () => {
+          if (isEditingProduct.value) {
+            const idx = products.value.findIndex(p => p.id === productForm.value.id);
+            if (idx !== -1) products.value[idx] = { ...productForm.value };
+          } else {
+            products.value.unshift({ id: Date.now(), ...productForm.value });
+          }
+          showProductModal.value = false;
+        };
+
+        const deleteProduct = (id) => { products.value = products.value.filter(p => p.id !== id); };
+
+        // INVENTORY ACTIONS
+        const inventoryForm = ref({
+          id: null,
+          name: '',
+          category: 'Gel Polish',
+          unit: 'ml',
+          stock: 10,
+          minStock: 2,
+          costPerUnit: 3000
+        });
+
+        const openAddInventoryModal = () => {
+          isEditingInventory.value = false;
+          inventoryForm.value = { id: null, name: '', category: 'Gel Polish', unit: 'ml', stock: 10, minStock: 2, costPerUnit: 3000 };
+          showInventoryModal.value = true;
+        };
+
+        const editInventory = (inv) => {
+          isEditingInventory.value = true;
+          inventoryForm.value = { ...inv };
+          showInventoryModal.value = true;
+        };
+
+        const saveInventory = () => {
+          if (isEditingInventory.value) {
+            const idx = inventory.value.findIndex(i => i.id === inventoryForm.value.id);
+            if (idx !== -1) inventory.value[idx] = { ...inventoryForm.value };
+          } else {
+            inventory.value.unshift({ id: Date.now(), ...inventoryForm.value });
+          }
+          showInventoryModal.value = false;
+        };
+
+        const deleteInventory = (id) => { inventory.value = inventory.value.filter(i => i.id !== id); };
+
+        // ACADEMY CRUD ACTIONS
         const academyForm = ref({
           id: null,
           title: '',
@@ -1373,9 +1662,9 @@
           products,
           customers,
           appointments,
-          academyCategories,
           academyArticles,
           filteredAcademy,
+          academyCategories,
           selectedCategory,
           lowStockCount,
           pendingAppointments,
@@ -1389,11 +1678,15 @@
           todayReport,
           currentMonthReport,
           activeReportData,
+          restockFilterPeriod,
+          filteredRestockList,
+          restockSummary,
           showRestockModal,
           targetRestockItem,
           restockForm,
           openRestockModal,
           submitRestock,
+          deleteRestockHistory,
           showCustomerModal,
           isEditingCustomer,
           customerForm,
@@ -1413,6 +1706,22 @@
           saveAppointment,
           deleteAppointment,
           completeAppointment,
+          showProductModal,
+          isEditingProduct,
+          productForm,
+          openAddProductModal,
+          editProduct,
+          addProductMaterial,
+          removeProductMaterial,
+          saveProduct,
+          deleteProduct,
+          showInventoryModal,
+          isEditingInventory,
+          inventoryForm,
+          openAddInventoryModal,
+          editInventory,
+          saveInventory,
+          deleteInventory,
           activeInvoice,
           openInvoice,
           printReceipt,
