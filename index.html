@@ -129,12 +129,12 @@
           <div>
             <span class="bg-white/20 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Live Overview</span>
             <h2 class="text-2xl sm:text-3xl font-black mt-2">Good evening, Ayu! 🦔🎀</h2>
-            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & total omset bulan ini Rp{{ currentMonthReport.revenue.toLocaleString('id-ID') }}.</p>
+            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & total {{ academyArticles.length }} modul SOP terdaftar.</p>
           </div>
           <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-left md:text-right w-full md:w-auto">
             <div class="text-[10px] text-rose-100 uppercase font-semibold">Net Profit Bulan Ini</div>
             <div class="text-2xl font-black mt-0.5">Rp{{ currentMonthReport.netProfit.toLocaleString('id-ID') }}</div>
-            <div class="text-[10px] text-emerald-200 font-bold">✨ Setelah Biaya Restock & HPP</div>
+            <div class="text-[10px] text-emerald-200 font-bold">✨ Dari {{ completedAppointments.length }} Treatment Selesai</div>
           </div>
         </div>
 
@@ -149,19 +149,19 @@
           </div>
 
           <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-sm sm:text-base mb-2">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Academy & SOP</div>
+            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">{{ academyArticles.length }} Modul</div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
             <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm sm:text-base mb-2">
               <i class="fa-solid fa-coins"></i>
             </div>
             <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Omset Hari Ini</div>
             <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">Rp{{ todayReport.revenue.toLocaleString('id-ID') }}</div>
-          </div>
-
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
-            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-sm sm:text-base mb-2">
-              <i class="fa-solid fa-file-invoice-dollar"></i>
-            </div>
-            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Total Biaya Restock</div>
-            <div class="text-base sm:text-xl font-bold text-rose-600 mt-0.5">Rp{{ totalRestockExpenses.toLocaleString('id-ID') }}</div>
           </div>
 
           <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
@@ -173,7 +173,7 @@
           </div>
         </div>
 
-        <!-- Jadwal Mendatang & Quick POS Actions -->
+        <!-- Jadwal Mendatang & Quick Action -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
             <div class="flex items-center justify-between">
@@ -182,7 +182,7 @@
             </div>
             <div v-if="appointments.length === 0" class="text-center py-8 text-slate-400 text-xs">Belum ada booking terjadwal.</div>
             <div class="space-y-3">
-              <div v-for="app in appointments.slice(0, 4)" :key="app.id" class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 gap-3">
+              <div v-for="app in appointments.slice(0, 5)" :key="app.id" class="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100 gap-3">
                 <div class="flex items-center gap-3">
                   <span class="font-mono text-xs font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-xl shrink-0">{{ app.time }}</span>
                   <div>
@@ -193,6 +193,9 @@
                 <div class="flex items-center gap-2 self-end sm:self-center">
                   <button @click="openInvoice(app)" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1">
                     <i class="fa-solid fa-receipt"></i> Struk
+                  </button>
+                  <button @click="editAppointment(app)" class="p-1.5 text-slate-400 hover:text-rose-500 text-xs" title="Edit Jadwal">
+                    <i class="fa-solid fa-pen-to-square"></i>
                   </button>
                   <button v-if="app.status !== 'Completed'" @click="completeAppointment(app.id)" class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs">
                     Selesaikan
@@ -219,9 +222,8 @@
         </div>
       </div>
 
-      <!-- 2. TAB: LAPORAN KEUANGAN & GRAFIK (HARIAN, MINGGUAN, BULANAN, TAHUNAN) -->
+      <!-- 2. TAB: LAPORAN KEUANGAN & GRAFIK -->
       <div v-if="activeTab === 'reports'" class="space-y-6">
-        <!-- Header & Periode Switcher -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-800">📊 Laporan Keuangan & Analisis Laba</h2>
@@ -239,79 +241,35 @@
           </div>
         </div>
 
-        <!-- 3 Financial Summary Cards for Selected Period -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
             <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
               <span>Gross Revenue (Omset)</span>
-              <span class="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeReportData.treatmentCount }} Treatment Selesai</span>
+              <span class="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeReportData.treatmentCount }} Selesai</span>
             </div>
             <div class="text-2xl font-black text-slate-800">Rp{{ activeReportData.revenue.toLocaleString('id-ID') }}</div>
-            <p class="text-[11px] text-slate-400 mt-1">Total pembayaran masuk dari client</p>
           </div>
 
           <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
             <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
-              <span>Total Pengeluaran (Expense)</span>
+              <span>Total Pengeluaran</span>
               <span class="text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeReportData.restockCount }}x Restock</span>
             </div>
             <div class="text-2xl font-black text-rose-600">Rp{{ activeReportData.expenses.toLocaleString('id-ID') }}</div>
-            <p class="text-[11px] text-slate-400 mt-1">Pembelian stok barang & HPP material</p>
           </div>
 
           <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
             <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
-              <span>Net Profit (Laba Bersih)</span>
+              <span>Net Profit</span>
               <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">Margin: {{ activeReportData.margin }}%</span>
             </div>
             <div class="text-2xl font-black text-emerald-600">Rp{{ activeReportData.netProfit.toLocaleString('id-ID') }}</div>
-            <p class="text-[11px] text-slate-400 mt-1">Omset dikurangi seluruh biaya riil</p>
           </div>
         </div>
 
-        <!-- Chart Section -->
         <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
-          <div class="flex justify-between items-center">
-            <div>
-              <h3 class="text-sm font-bold text-slate-800">📈 Visualisasi Grafik Performa Finansial</h3>
-              <p class="text-[11px] text-slate-400">Komparasi pendapatan, biaya restock, dan laba bersih periode {{ reportPeriod }}.</p>
-            </div>
-          </div>
           <div class="relative h-64 sm:h-72 w-full">
             <canvas id="financialChart"></canvas>
-          </div>
-        </div>
-
-        <!-- Transaction & Expense Logs Table for Selected Period -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Income From Appointments -->
-          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
-            <h3 class="font-bold text-slate-800 text-sm">💅 Pemasukan Appointment ({{ activeReportData.incomeList.length }})</h3>
-            <div v-if="activeReportData.incomeList.length === 0" class="text-xs text-slate-400 text-center py-6">Tidak ada transaksi pada periode ini.</div>
-            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
-              <div v-for="inc in activeReportData.incomeList" :key="inc.id" class="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex justify-between items-center text-xs">
-                <div>
-                  <p class="font-bold text-slate-800">{{ inc.serviceName }}</p>
-                  <p class="text-[10px] text-slate-400">{{ inc.customerName }} • {{ inc.date }} {{ inc.time }}</p>
-                </div>
-                <span class="font-black text-emerald-600">+Rp{{ inc.price.toLocaleString('id-ID') }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Expenses From Restock -->
-          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
-            <h3 class="font-bold text-slate-800 text-sm">📦 Pengeluaran Restock Barang ({{ activeReportData.expenseList.length }})</h3>
-            <div v-if="activeReportData.expenseList.length === 0" class="text-xs text-slate-400 text-center py-6">Tidak ada restock pada periode ini.</div>
-            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
-              <div v-for="exp in activeReportData.expenseList" :key="exp.id" class="p-3 bg-rose-50/50 border border-rose-100 rounded-2xl flex justify-between items-center text-xs">
-                <div>
-                  <p class="font-bold text-slate-800">{{ exp.itemName }} (+{{ exp.qty }} {{ exp.unit }})</p>
-                  <p class="text-[10px] text-slate-400">{{ exp.date }} • {{ exp.notes || 'Pembelian stok' }}</p>
-                </div>
-                <span class="font-black text-rose-600">-Rp{{ exp.cost.toLocaleString('id-ID') }}</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -354,7 +312,6 @@
                 </div>
               </div>
 
-              <!-- Profile Details -->
               <div class="mt-4 p-3 bg-slate-50 rounded-2xl space-y-1.5 text-xs text-slate-600 border border-slate-100">
                 <div class="flex justify-between items-center">
                   <span class="text-slate-400">Sizing Press-On:</span>
@@ -365,7 +322,6 @@
                 </div>
               </div>
 
-              <!-- Riwayat Booking Customer Ini -->
               <div class="mt-3">
                 <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1.5">
                   <span>📅 Riwayat Kunjungan:</span>
@@ -401,12 +357,12 @@
         </div>
       </div>
 
-      <!-- 4. TAB: APPOINTMENTS & STRUK INVOICE -->
+      <!-- 4. TAB: APPOINTMENTS -->
       <div v-if="activeTab === 'appointments'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-800">📅 Jadwal & Booking Appointment</h2>
-            <p class="text-xs text-slate-400">Atur antrean treatment, custom harga transaksi, cetak struk invoice, dan selesaikan pesanan.</p>
+            <p class="text-xs text-slate-400">Atur antrean treatment, edit jadwal, custom harga, dan cetak struk invoice.</p>
           </div>
           <button 
             @click="openAddBookingModal" 
@@ -454,6 +410,9 @@
                   <td class="py-3.5 px-4 text-right space-x-2">
                     <button @click="openInvoice(app)" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold inline-flex items-center gap-1" title="Cetak Struk">
                       <i class="fa-solid fa-receipt"></i> Struk
+                    </button>
+                    <button @click="editAppointment(app)" class="p-1.5 bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 rounded-lg text-xs" title="Edit Jadwal">
+                      <i class="fa-solid fa-pen-to-square"></i>
                     </button>
                     <a :href="generateWaLink(app)" target="_blank" class="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 text-xs inline-block" title="WhatsApp Reminder">
                       <i class="fa-brands fa-whatsapp"></i>
@@ -520,21 +479,12 @@
                   <span class="text-emerald-700">Rp{{ (prod.sellingPrice - calculateTotalHpp(prod.materials)).toLocaleString('id-ID') }} ({{ calculateMargin(prod.sellingPrice, calculateTotalHpp(prod.materials)) }}%)</span>
                 </div>
               </div>
-
-              <div class="mt-3">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Resep Bahan yang Berkurang Otomatis:</span>
-                <div class="flex flex-wrap gap-1">
-                  <span v-for="(mat, idx) in prod.materials" :key="idx" class="text-[10px] bg-rose-50/60 border border-rose-100 px-2 py-0.5 rounded-lg text-slate-700">
-                    {{ mat.name }} ({{ mat.qty || 1 }} {{ mat.unit || 'unit' }}) - Rp{{ mat.cost }}
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 6. TAB: INVENTORY & RESTOCK EXPENSE TRACKER -->
+      <!-- 6. TAB: INVENTORY -->
       <div v-if="activeTab === 'inventory'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -567,7 +517,6 @@
                 </div>
               </div>
 
-              <!-- Stock Bar -->
               <div class="mt-4 p-3 bg-slate-50 rounded-2xl space-y-2 border border-slate-100 text-xs">
                 <div class="flex justify-between items-center">
                   <span class="text-slate-400">Sisa Stok:</span>
@@ -585,7 +534,6 @@
               </div>
             </div>
 
-            <!-- Quick Restock Action -->
             <div class="pt-2 border-t border-slate-50 flex items-center justify-between">
               <span v-if="inv.stock <= inv.minStock" class="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                 <i class="fa-solid fa-triangle-exclamation"></i> Low Stock
@@ -595,32 +543,86 @@
               </span>
 
               <button @click="openRestockModal(inv)" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs">
-                + Restock & Catat Biaya
+                + Restock
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 7. TAB: ACADEMY SOP -->
+      <!-- 7. TAB: PIXIE ACADEMY & SOP (LENGKAP: TAMBAH, EDIT, HAPUS, & FILTER TAGS) -->
       <div v-if="activeTab === 'academy'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
+            <div class="flex items-center gap-2 text-rose-500 font-bold text-xs uppercase tracking-wider mb-0.5">
+              <i class="fa-solid fa-graduation-cap"></i>
+              <span>Pixie Knowledge Base</span>
+            </div>
             <h2 class="text-base sm:text-lg font-bold text-slate-800">📚 Pixie Academy & SOP Knowledge Base</h2>
             <p class="text-xs text-slate-400">Kumpulan catatan teknik, SOP steril, formula nail art, dan tutorial.</p>
           </div>
+          <button 
+            @click="openAddAcademyModal" 
+            class="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-2xl shadow-md shadow-rose-200 flex items-center justify-center gap-2">
+            <i class="fa-solid fa-plus"></i>
+            <span>Tambah Materi Baru</span>
+          </button>
         </div>
 
+        <!-- Filter Tags Kategori -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <button 
+            v-for="cat in academyCategories" 
+            :key="cat"
+            @click="selectedCategory = cat"
+            :class="selectedCategory === cat ? 'bg-rose-500 text-white font-bold shadow-xs' : 'bg-white text-slate-600 border border-slate-100 font-medium'"
+            class="px-4 py-2 rounded-xl text-xs whitespace-nowrap transition-all">
+            {{ cat }}
+          </button>
+        </div>
+
+        <!-- Grid Modul / Materi -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <div v-for="item in academyArticles" :key="item.id" class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs">
-            <img :src="item.image" class="w-full h-44 object-cover" />
-            <div class="p-5 space-y-2.5">
-              <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg uppercase">{{ item.category }}</span>
-              <h3 class="font-bold text-slate-800 text-sm leading-snug">{{ item.title }}</h3>
-              <p class="text-xs text-slate-500 line-clamp-2">{{ item.summary }}</p>
-              <div class="p-3 bg-amber-50 text-amber-900 rounded-2xl text-[11px] font-medium border border-amber-100/70">
-                💡 <strong>Pro Tip:</strong> {{ item.proTip }}
+          <div 
+            v-for="item in filteredAcademy" 
+            :key="item.id"
+            class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div class="h-44 w-full relative bg-slate-100">
+                <img :src="item.image" :alt="item.title" class="w-full h-full object-cover" />
+                <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-rose-600 text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                  {{ item.category }}
+                </span>
+                
+                <!-- Action Buttons: Edit & Delete -->
+                <div class="absolute top-3 right-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-md p-1 rounded-xl shadow-xs">
+                  <button @click="editAcademy(item)" class="w-7 h-7 flex items-center justify-center text-slate-600 hover:text-rose-600 rounded-lg text-xs" title="Edit Materi">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                  </button>
+                  <button @click="deleteAcademy(item.id)" class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg text-xs" title="Hapus">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
               </div>
+
+              <div class="p-5 space-y-2.5">
+                <h3 class="font-bold text-slate-800 text-sm leading-snug">{{ item.title }}</h3>
+                <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">{{ item.summary }}</p>
+                
+                <div class="p-3 bg-amber-50 text-amber-900 rounded-2xl text-[11px] font-medium border border-amber-100/70">
+                  💡 <strong>Pro Tip:</strong> {{ item.proTip }}
+                </div>
+              </div>
+            </div>
+
+            <div class="p-5 pt-0 flex items-center justify-between border-t border-slate-50 mt-2">
+              <span class="text-[10px] bg-rose-50 text-rose-600 font-bold px-2.5 py-1 rounded-lg">
+                #{{ item.category }}
+              </span>
+              <button @click="activeDetailModal = item" class="text-xs font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1">
+                <span>Baca Materi</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -641,7 +643,7 @@
       </button>
     </nav>
 
-    <!-- MODAL RESTOCK DENGAN INPUT HARGA/BIAYA MASUK KE LAPORAN -->
+    <!-- MODAL RESTOCK -->
     <div v-if="showRestockModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -691,20 +693,140 @@
       </div>
     </div>
 
-    <!-- MODAL BOOKING -->
+    <!-- MODAL APPOINTMENT -->
     <div v-if="showBookingModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-          <h3 class="text-base font-bold text-slate-800">Booking Jadwal Treatment 📅</h3>
+          <h3 class="text-base font-bold text-slate-800">{{ isEditingAppointment ? 'Edit Jadwal Appointment' : 'Booking Jadwal Treatment' }} 📅</h3>
           <button @click="showBookingModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <form @submit.prevent="saveAppointment" class="space-y-3.5 text-xs">
-          <div><label class="font-bold text-slate-700 block mb-1">Customer</label><select v-model="selectedCustomerObj" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required><option :value="null" disabled>-- Pilih Customer --</option><option v-for="c in customers" :key="c.id" :value="c">{{ c.name }}</option></select></div>
-          <div><label class="font-bold text-slate-700 block mb-1">Treatment</label><select v-model="selectedProductObj" @change="onSelectProductChange" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required><option :value="null" disabled>-- Pilih Treatment --</option><option v-for="p in products" :key="p.id" :value="p">{{ p.name }} (Rp{{ p.sellingPrice.toLocaleString('id-ID') }})</option></select></div>
-          <div><label class="font-bold text-slate-700 block mb-1">Harga Transaksi (Rp)</label><input v-model.number="appointmentForm.customPrice" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" /></div>
-          <div class="grid grid-cols-2 gap-2"><div><label class="font-bold text-slate-700 block mb-1">Tanggal</label><input v-model="appointmentForm.date" type="date" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div><div><label class="font-bold text-slate-700 block mb-1">Jam Mulai</label><input v-model="appointmentForm.time" type="time" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div></div>
-          <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showBookingModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button><button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan</button></div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Customer</label>
+            <select v-model="selectedCustomerObj" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
+              <option :value="null" disabled>-- Pilih Customer --</option>
+              <option v-for="c in customers" :key="c.id" :value="c">{{ c.name }} ({{ c.phone }})</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Treatment</label>
+            <select v-model="selectedProductObj" @change="onSelectProductChange" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
+              <option :value="null" disabled>-- Pilih Treatment --</option>
+              <option v-for="p in products" :key="p.id" :value="p">{{ p.name }} (Rp{{ p.sellingPrice.toLocaleString('id-ID') }})</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Harga Transaksi (Rp)</label>
+            <input v-model.number="appointmentForm.customPrice" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" />
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Tanggal</label>
+              <input v-model="appointmentForm.date" type="date" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
+            </div>
+            <div>
+              <label class="font-bold text-slate-700 block mb-1">Jam Mulai</label>
+              <input v-model="appointmentForm.time" type="time" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
+            </div>
+          </div>
+          <div v-if="isEditingAppointment">
+            <label class="font-bold text-slate-700 block mb-1">Status Pengerjaan</label>
+            <select v-model="appointmentForm.status" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
+              <option value="Scheduled">Scheduled (Menunggu)</option>
+              <option value="Completed">Completed (Selesai)</option>
+              <option value="Cancelled">Cancelled (Batal)</option>
+            </select>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="showBookingModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">
+              {{ isEditingAppointment ? 'Update Jadwal' : 'Simpan Jadwal' }}
+            </button>
+          </div>
         </form>
+      </div>
+    </div>
+
+    <!-- MODAL TAMBAH & EDIT ACADEMY / SOP -->
+    <div v-if="showAcademyModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <h3 class="text-base font-bold text-slate-800">{{ isEditingAcademy ? 'Edit Materi & SOP' : 'Tambah Modul Materi Baru' }} 📚</h3>
+          <button @click="showAcademyModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveAcademyModule" class="space-y-3.5 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Judul SOP / Materi</label>
+            <input v-model="academyForm.title" type="text" required placeholder="misal: Sanitasi & Sterilisasi UV Barbicide" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Kategori Tags</label>
+            <select v-model="academyForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
+              <option v-for="cat in academyCategories.filter(c => c !== 'Semua')" :key="cat" :value="cat">
+                {{ cat }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">URL Cover Foto</label>
+            <input v-model="academyForm.image" type="text" placeholder="https://images.unsplash.com/..." class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Ringkasan Materi</label>
+            <textarea v-model="academyForm.summary" rows="2" class="w-full p-2.5 border border-slate-200 rounded-xl" placeholder="Penjelasan penting..."></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Langkah Prosedur (Setiap baris = 1 langkah)</label>
+            <textarea v-model="academyStepsRaw" rows="3" class="w-full p-2.5 border border-slate-200 rounded-xl" placeholder="1. Bersihkan alat&#10;2. Rendam disinfektan&#10;3. Keringkan & sterilkan"></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Pro Tip / Peringatan Khusus</label>
+            <input v-model="academyForm.proTip" type="text" placeholder="Tips rahasia pengerjaan..." class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="showAcademyModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">
+              {{ isEditingAcademy ? 'Update Materi' : 'Simpan Modul' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL DETAIL BACA SOP -->
+    <div v-if="activeDetailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg uppercase">{{ activeDetailModal.category }}</span>
+            <h3 class="text-lg font-black text-slate-800 mt-2">{{ activeDetailModal.title }}</h3>
+          </div>
+          <button @click="activeDetailModal = null" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <img :src="activeDetailModal.image" class="w-full h-48 object-cover rounded-2xl shadow-xs" />
+
+        <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>{{ activeDetailModal.summary }}</p>
+          
+          <div v-if="activeDetailModal.steps && activeDetailModal.steps.length" class="p-4 bg-rose-50/60 rounded-2xl border border-rose-100">
+            <h4 class="font-bold text-rose-900 mb-2">📋 Langkah Pengerjaan:</h4>
+            <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+              <li v-for="(s, i) in activeDetailModal.steps" :key="i">{{ s }}</li>
+            </ol>
+          </div>
+
+          <div class="p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl text-amber-900">
+            <span class="font-bold">⚠️ Pro Artist Secret:</span>
+            <p class="text-[11px] mt-0.5">{{ activeDetailModal.proTip }}</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -742,11 +864,12 @@
 
   <!-- VUE 3 CORE & CHART ENGINE -->
   <script>
-    const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+    const { createApp, ref, computed, watch, nextTick } = Vue;
 
     createApp({
       setup() {
         const activeTab = ref('dashboard');
+        const selectedCategory = ref('Semua');
         const reportPeriod = ref('monthly');
         let chartInstance = null;
 
@@ -754,7 +877,11 @@
         const showCustomerModal = ref(false);
         const isEditingCustomer = ref(false);
         const showBookingModal = ref(false);
+        const isEditingAppointment = ref(false);
         const showRestockModal = ref(false);
+        const showAcademyModal = ref(false);
+        const isEditingAcademy = ref(false);
+        const activeDetailModal = ref(null);
         const activeInvoice = ref(null);
 
         const navItems = [
@@ -822,18 +949,71 @@
           { id: 2, name: 'Naya Putri', phone: '085712345678', sizing: 'M • S • M • S • S', notes: 'Suka top coat ekstra glossy' },
         ]);
 
-        // 5. DATA: APPOINTMENTS (DENGAN TANGGAL 2026 UNTUK TESTING HARIAN/BULANAN)
+        // 5. DATA: APPOINTMENTS
         const appointments = ref(JSON.parse(localStorage.getItem('pixie_appointments')) || [
-          { id: 1, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 85000, duration: 90, date: '2026-08-20', time: '10:00', status: 'Completed' },
-          { id: 2, customerName: 'Naya Putri', customerPhone: '085712345678', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-08-20', time: '14:00', status: 'Completed' },
-          { id: 3, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 95000, duration: 90, date: '2026-08-18', time: '11:00', status: 'Completed' },
-          { id: 4, customerName: 'Clara Bella', customerPhone: '081987654321', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-07-25', time: '15:00', status: 'Completed' },
+          { id: 1, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 85000, duration: 90, date: '2026-08-20', time: '10:00', status: 'Scheduled' },
+          { id: 2, customerName: 'Naya Putri', customerPhone: '085712345678', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-08-20', time: '14:00', status: 'Scheduled' },
         ]);
 
-        // 6. DATA: ACADEMY
-        const academyArticles = ref([
-          { id: 1, title: 'SOP Sterilisasi Alat Medis & UV Pouch', category: 'SOP & Sanitasi', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80', summary: 'Protokol sterilisasi nipper dan drill bit menggunakan larutan desinfektan dan pouch steril UV.', proTip: 'Buka pouch steril langsung di depan customer.' }
+        // 6. DATA: ACADEMY (DENGAN KATEGORI & SISTEM CRUD LENGKAP)
+        const academyCategories = [
+          'Semua', 
+          'SOP & Sanitasi', 
+          'Nail Prep & Russian', 
+          '3D Art & Ribbon', 
+          'Color Formulation', 
+          'Press-On Sizing'
+        ];
+
+        const academyArticles = ref(JSON.parse(localStorage.getItem('pixie_academy')) || [
+          { 
+            id: 1, 
+            title: 'SOP Sterilisasi Alat Medis & UV Pouch', 
+            category: 'SOP & Sanitasi', 
+            image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80', 
+            summary: 'Protokol sterilisasi nipper dan drill bit menggunakan larutan desinfektan dan pouch steril UV.', 
+            steps: [
+              'Cuci bit & clipper dengan sabun enzimatik di bawah air mengalir',
+              'Rendam dalam larutan Barbicide selama 10 menit',
+              'Keringkan menyeluruh dengan tissue steril',
+              'Segel ke dalam pouch dan masukkan ke UV sterilizer'
+            ],
+            proTip: 'Buka pouch steril langsung di depan customer untuk meningkatkan trust.' 
+          },
+          {
+            id: 2,
+            title: 'SOP Dry Russian Manicure Anti-Lifting',
+            category: 'Nail Prep & Russian',
+            image: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=600&q=80',
+            summary: 'Pembersihan kutikula kering menggunakan diamond flame bit 014 agar lempeng kuku bebas minyak alami.',
+            steps: [
+              'Dorong eponychium lembut menggunakan cuticle pusher 45°',
+              'Gunakan flame bit 014 pada 6.000 RPM reverse & forward',
+              'Buffing kuku alami secara ringan dengan buffer grit 180',
+              'Dehidrasi kuku dengan 99% Isopropyl Alcohol lalu oles primer'
+            ],
+            proTip: 'Jangan merendam tangan customer dengan air sebelum aplikasi gel.'
+          },
+          {
+            id: 3,
+            title: 'Teknik 3D Emboss Ribbon & Mirror Chrome',
+            category: '3D Art & Ribbon',
+            image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=600&q=80',
+            summary: 'Formula timing cure no-wipe top coat untuk efek cermin liquid metal dan cetak pita 3D ribbon.',
+            steps: [
+              'Cure no-wipe top coat selama tepat 30 detik (Lampu LED 48W)',
+              'Gosokkan bubuk chrome segera selagi permukaan masih hangat',
+              'Bentuk pita menggunakan solid builder clay gel',
+              'Finishing lapisi top coat high-gloss'
+            ],
+            proTip: 'Jika hasil chrome berpasir/glittery, kurangi durasi curing top coat dari 30s ke 20s.'
+          }
         ]);
+
+        const filteredAcademy = computed(() => {
+          if (selectedCategory.value === 'Semua') return academyArticles.value;
+          return academyArticles.value.filter(a => a.category === selectedCategory.value);
+        });
 
         // Watchers
         watch(inventory, v => localStorage.setItem('pixie_inventory', JSON.stringify(v)), { deep: true });
@@ -841,6 +1021,7 @@
         watch(customers, v => localStorage.setItem('pixie_customers', JSON.stringify(v)), { deep: true });
         watch(appointments, v => localStorage.setItem('pixie_appointments', JSON.stringify(v)), { deep: true });
         watch(restockExpenses, v => localStorage.setItem('pixie_restock_expenses', JSON.stringify(v)), { deep: true });
+        watch(academyArticles, v => localStorage.setItem('pixie_academy', JSON.stringify(v)), { deep: true });
 
         // Computed Stats
         const lowStockCount = computed(() => inventory.value.filter(i => i.stock <= i.minStock).length);
@@ -853,7 +1034,7 @@
         const calculateTotalHpp = (materials = []) => materials.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
         const calculateMargin = (selling, hpp) => selling ? (((selling - hpp) / selling) * 100).toFixed(1) : 0;
 
-        // FINANCIAL REPORT GENERATOR (Harian, Mingguan, Bulanan, Tahunan)
+        // FINANCIAL REPORT GENERATOR
         const getFilteredReport = (period) => {
           const now = new Date('2026-08-20');
           const todayStr = '2026-08-20';
@@ -992,12 +1173,8 @@
           showRestockModal.value = false;
         };
 
-        // Customer & Appointment Actions
+        // Customer Actions
         const customerForm = ref({ id: null, name: '', phone: '', sizing: '', notes: '' });
-        const selectedCustomerObj = ref(null);
-        const selectedProductObj = ref(null);
-        const appointmentForm = ref({ date: '2026-08-20', time: '10:00', customPrice: 0 });
-
         const openAddCustomerModal = () => {
           isEditingCustomer.value = false;
           customerForm.value = { id: null, name: '', phone: '', sizing: '', notes: '' };
@@ -1025,27 +1202,67 @@
           openAddBookingModal();
         };
 
+        // APPOINTMENT ACTIONS
+        const selectedCustomerObj = ref(null);
+        const selectedProductObj = ref(null);
+        const appointmentForm = ref({ id: null, date: '2026-08-20', time: '10:00', customPrice: 0, status: 'Scheduled' });
+
         const openAddBookingModal = () => {
+          isEditingAppointment.value = false;
           selectedProductObj.value = null;
-          appointmentForm.value = { date: '2026-08-20', time: '10:00', customPrice: 0 };
+          appointmentForm.value = { id: null, date: '2026-08-20', time: '10:00', customPrice: 0, status: 'Scheduled' };
           showBookingModal.value = true;
         };
+
+        const editAppointment = (app) => {
+          isEditingAppointment.value = true;
+          selectedCustomerObj.value = customers.value.find(c => c.name === app.customerName) || { name: app.customerName, phone: app.customerPhone };
+          selectedProductObj.value = products.value.find(p => p.name === app.serviceName) || { name: app.serviceName, duration: app.duration, sellingPrice: app.price };
+          appointmentForm.value = {
+            id: app.id,
+            date: app.date,
+            time: app.time,
+            customPrice: app.price,
+            status: app.status
+          };
+          showBookingModal.value = true;
+        };
+
         const onSelectProductChange = () => {
           if (selectedProductObj.value) appointmentForm.value.customPrice = selectedProductObj.value.sellingPrice;
         };
+
         const saveAppointment = () => {
           if (!selectedCustomerObj.value || !selectedProductObj.value) return;
-          appointments.value.unshift({
-            id: Date.now(),
-            customerName: selectedCustomerObj.value.name,
-            customerPhone: selectedCustomerObj.value.phone,
-            serviceName: selectedProductObj.value.name,
-            price: Number(appointmentForm.value.customPrice) || selectedProductObj.value.sellingPrice,
-            duration: selectedProductObj.value.duration,
-            date: appointmentForm.value.date,
-            time: appointmentForm.value.time,
-            status: 'Completed'
-          });
+
+          if (isEditingAppointment.value) {
+            const idx = appointments.value.findIndex(a => a.id === appointmentForm.value.id);
+            if (idx !== -1) {
+              appointments.value[idx] = {
+                ...appointments.value[idx],
+                customerName: selectedCustomerObj.value.name,
+                customerPhone: selectedCustomerObj.value.phone,
+                serviceName: selectedProductObj.value.name,
+                price: Number(appointmentForm.value.customPrice) || selectedProductObj.value.sellingPrice,
+                duration: selectedProductObj.value.duration,
+                date: appointmentForm.value.date,
+                time: appointmentForm.value.time,
+                status: appointmentForm.value.status
+              };
+            }
+          } else {
+            appointments.value.unshift({
+              id: Date.now(),
+              customerName: selectedCustomerObj.value.name,
+              customerPhone: selectedCustomerObj.value.phone,
+              serviceName: selectedProductObj.value.name,
+              price: Number(appointmentForm.value.customPrice) || selectedProductObj.value.sellingPrice,
+              duration: selectedProductObj.value.duration,
+              date: appointmentForm.value.date,
+              time: appointmentForm.value.time,
+              status: 'Scheduled'
+            });
+          }
           showBookingModal.value = false;
         };
 
@@ -1083,6 +1300,70 @@
           return `https://wa.me/${phone}?text=${encodeURIComponent('Halo Kak ' + app.customerName + '! Reminder appointment kuku Pixie Studio untuk ' + app.serviceName + ' tgl ' + app.date + ' jam ' + app.time)}`;
         };
 
+        // ACADEMY CRUD ACTIONS (CREATE, EDIT, DELETE)
+        const academyForm = ref({
+          id: null,
+          title: '',
+          category: 'SOP & Sanitasi',
+          image: '',
+          summary: '',
+          proTip: ''
+        });
+        const academyStepsRaw = ref('');
+
+        const openAddAcademyModal = () => {
+          isEditingAcademy.value = false;
+          academyForm.value = {
+            id: null,
+            title: '',
+            category: 'SOP & Sanitasi',
+            image: '',
+            summary: '',
+            proTip: ''
+          };
+          academyStepsRaw.value = '';
+          showAcademyModal.value = true;
+        };
+
+        const editAcademy = (item) => {
+          isEditingAcademy.value = true;
+          academyForm.value = { ...item };
+          academyStepsRaw.value = item.steps ? item.steps.join('\n') : '';
+          showAcademyModal.value = true;
+        };
+
+        const saveAcademyModule = () => {
+          if (!academyForm.value.title) return;
+          const parsedSteps = academyStepsRaw.value.split('\n').map(s => s.trim()).filter(Boolean);
+
+          if (isEditingAcademy.value) {
+            const idx = academyArticles.value.findIndex(a => a.id === academyForm.value.id);
+            if (idx !== -1) {
+              academyArticles.value[idx] = {
+                ...academyForm.value,
+                steps: parsedSteps
+              };
+            }
+          } else {
+            academyArticles.value.unshift({
+              id: Date.now(),
+              title: academyForm.value.title,
+              category: academyForm.value.category,
+              image: academyForm.value.image || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
+              summary: academyForm.value.summary,
+              steps: parsedSteps,
+              proTip: academyForm.value.proTip || 'Pastikan sanitasi dan prosedur steril terjaga.'
+            });
+          }
+          showAcademyModal.value = false;
+        };
+
+        const deleteAcademy = (id) => {
+          if (confirm('Hapus modul SOP ini?')) {
+            academyArticles.value = academyArticles.value.filter(a => a.id !== id);
+          }
+        };
+
         return {
           activeTab,
           switchTab,
@@ -1092,7 +1373,10 @@
           products,
           customers,
           appointments,
+          academyCategories,
           academyArticles,
+          filteredAcademy,
+          selectedCategory,
           lowStockCount,
           pendingAppointments,
           completedAppointments,
@@ -1119,10 +1403,12 @@
           deleteCustomer,
           bookWithCustomer,
           showBookingModal,
+          isEditingAppointment,
           selectedCustomerObj,
           selectedProductObj,
           appointmentForm,
           openAddBookingModal,
+          editAppointment,
           onSelectProductChange,
           saveAppointment,
           deleteAppointment,
@@ -1131,7 +1417,16 @@
           openInvoice,
           printReceipt,
           saveReceiptPng,
-          generateWaLink
+          generateWaLink,
+          showAcademyModal,
+          isEditingAcademy,
+          academyForm,
+          academyStepsRaw,
+          openAddAcademyModal,
+          editAcademy,
+          saveAcademyModule,
+          deleteAcademy,
+          activeDetailModal
         };
       }
     }).mount('#app');
