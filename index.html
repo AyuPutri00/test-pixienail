@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pixie Studio Manager 🦔🎀</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pixie: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              200: '#fecdd3',
+              400: '#fb7185',
+              500: '#f43f5e',
+              600: '#e11d48',
+              700: '#be123c',
+              800: '#9f1239',
+              900: '#881337',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Hilangkan scrollbar default tapi tetap bisa di-scroll */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-rose-50/30 text-slate-800 font-sans antialiased min-h-screen pb-20 md:pb-0">
+  <div id="app" class="flex flex-col md:flex-row min-h-screen">
+    
+    <!-- DESKTOP & TABLET SIDEBAR (Hidden on Mobile) -->
+    <aside class="hidden md:flex md:w-64 lg:w-72 bg-white border-r border-rose-100 p-6 flex-col justify-between shrink-0 shadow-sm sticky top-0 h-screen">
+      <div class="space-y-8">
+        <!-- Logo Brand -->
+        <div class="flex items-center gap-3 px-2">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-400 flex items-center justify-center text-white text-xl shadow-md shadow-rose-200">
+            🦔
+          </div>
+          <div>
+            <h1 class="font-extrabold text-lg text-slate-800 tracking-tight leading-none">Pixie Studio</h1>
+            <span class="text-[11px] text-rose-400 font-bold uppercase tracking-wider">Studio Manager</span>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="space-y-1.5">
+          <button 
+            v-for="item in navItems" 
+            :key="item.id"
+            @click="activeTab = item.id"
+            :class="activeTab === item.id ? 'bg-rose-50 text-rose-600 font-bold shadow-xs' : 'text-slate-500 hover:bg-slate-50 font-medium'"
+            class="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm transition-all duration-150 text-left">
+            <i :class="[item.icon, 'w-5 text-center text-base', activeTab === item.id ? 'text-rose-500' : 'text-slate-400']"></i>
+            <span>{{ item.label }}</span>
+            <span v-if="item.badge" class="ml-auto bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
+              {{ item.badge }}
+            </span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- User Profile Widget -->
+      <div class="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+          AY
+        </div>
+        <div class="text-xs truncate">
+          <p class="font-bold text-slate-800">Ayu 🎀</p>
+          <p class="text-slate-400">Head Nailist</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MOBILE TOP BAR (Hidden on Tablet & Desktop) -->
+    <header class="md:hidden bg-white border-b border-rose-100 px-5 py-3.5 sticky top-0 z-30 flex items-center justify-between shadow-xs">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl bg-rose-500 flex items-center justify-center text-white text-sm shadow-sm">🦔</div>
+        <span class="font-bold text-slate-800 text-sm">Pixie Studio</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-[11px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100">
+          {{ currentTabTitle }}
+        </span>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full overflow-x-hidden">
+      
+      <!-- 1. TAB: DASHBOARD -->
+      <div v-if="activeTab === 'dashboard'" class="space-y-6">
+        <!-- Hero Greetings Banner -->
+        <div class="bg-gradient-to-r from-rose-500 via-pink-500 to-rose-400 rounded-3xl p-6 sm:p-8 text-white shadow-lg shadow-rose-200/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <span class="bg-white/20 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Overview Studio</span>
+            <h2 class="text-2xl sm:text-3xl font-black mt-2">Good evening, Ayu! 🦔🎀</h2>
+            <p class="text-rose-100 text-xs sm:text-sm mt-1">3 customer aktif hari ini & 2 pesanan press-on dalam antrean.</p>
+          </div>
+          <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-left md:text-right w-full md:w-auto">
+            <div class="text-[10px] text-rose-100 uppercase font-semibold">Net Profit Bulan Ini</div>
+            <div class="text-2xl font-black mt-0.5">Rp4.800.000</div>
+            <div class="text-[10px] text-emerald-200 font-bold">▲ +18.4% vs bulan lalu</div>
+          </div>
+        </div>
+
+        <!-- 4 Quick Metric Cards -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-pink-50 text-rose-500 flex items-center justify-center text-sm sm:text-base mb-2 sm:mb-3">
+              <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Appointments</div>
+            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">3 Slot Booked</div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm sm:text-base mb-2 sm:mb-3">
+              <i class="fa-solid fa-coins"></i>
+            </div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Today's Revenue</div>
+            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">Rp350.000</div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-500 flex items-center justify-center text-sm sm:text-base mb-2 sm:mb-3">
+              <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Low Stock</div>
+            <div class="text-base sm:text-xl font-bold text-amber-600 mt-0.5">4 Material</div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-sm sm:text-base mb-2 sm:mb-3">
+              <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">SOP Modules</div>
+            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">{{ academyArticles.length }} Modul</div>
+          </div>
+        </div>
+
+        <!-- Schedule & Customer Quick Profile -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-slate-800 text-sm sm:text-base">📅 Jadwal Hari Ini</h3>
+              <span class="text-[11px] font-bold text-rose-500 bg-rose-50 px-3 py-1 rounded-full">Aug 19, 2026</span>
+            </div>
+            <div class="space-y-3">
+              <div v-for="app in appointments" :key="app.id" class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-100">
+                <div class="flex items-center gap-3">
+                  <span class="font-mono text-xs font-bold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-xl">{{ app.time }}</span>
+                  <div>
+                    <h4 class="text-xs sm:text-sm font-bold text-slate-800">{{ app.customer }}</h4>
+                    <p class="text-[11px] text-slate-400">{{ app.service }} • {{ app.duration }}</p>
+                  </div>
+                </div>
+                <span class="text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                  {{ app.status }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CRM Card -->
+          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-800 text-sm sm:text-base">💅 Client Nail Profile</h3>
+            <div class="p-4 bg-rose-50/50 rounded-2xl border border-rose-100 text-xs space-y-2.5">
+              <div class="flex justify-between items-center pb-2 border-b border-rose-100">
+                <span class="font-bold text-slate-800">Sarah (10:00 AM)</span>
+                <span class="text-[10px] bg-rose-200 text-rose-800 px-2 py-0.5 rounded-md font-bold">VIP Client</span>
+              </div>
+              <p class="text-slate-600"><strong class="text-slate-800">Bentuk:</strong> Almond (Medium)</p>
+              <p class="text-slate-600"><strong class="text-slate-800">Warna Favorit:</strong> Soft Baby Pink 🎀</p>
+              <p class="text-slate-600"><strong class="text-slate-800">Sizing Press-On:</strong> S • XS • S • XS • XS</p>
+              <p class="text-slate-600"><strong class="text-slate-800">Catatan:</strong> Kutikula sensitif pada jari kelingking.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. TAB: SALES & ANALYTICS (DENGAN GRAFIK) -->
+      <div v-if="activeTab === 'analytics'" class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-800">📊 Business & Sales Analytics</h2>
+            <p class="text-xs text-slate-400">Analisis tren omset, laba bersih, dan proporsi treatment.</p>
+          </div>
+          <div class="flex gap-1.5 bg-slate-100 p-1 rounded-2xl w-fit">
+            <button 
+              v-for="p in ['monthly', 'weekly']" 
+              :key="p" 
+              @click="switchChartPeriod(p)"
+              :class="chartPeriod === p ? 'bg-white text-rose-600 font-bold shadow-xs' : 'text-slate-500 font-medium'"
+              class="px-3 py-1.5 rounded-xl text-xs capitalize transition-all">
+              {{ p }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Line Chart Container -->
+          <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xs sm:text-sm font-bold text-slate-800">Tren Revenue vs Net Profit</h3>
+              <span class="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">Margin 64%</span>
+            </div>
+            <div class="relative h-64 sm:h-72 w-full">
+              <canvas id="salesLineChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Doughnut Chart Container -->
+          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4 flex flex-col justify-between">
+            <h3 class="text-xs sm:text-sm font-bold text-slate-800">Komposisi Pendapatan</h3>
+            <div class="relative h-56 sm:h-60 w-full flex items-center justify-center">
+              <canvas id="serviceDoughnutChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Insight Box -->
+        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-3">
+          <div class="flex items-center gap-2 text-rose-500 text-xs font-bold uppercase tracking-wider">
+            <i class="fa-solid fa-sparkles"></i>
+            <span>Automated Studio Insights</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="p-3.5 bg-emerald-50/70 border border-emerald-100 rounded-2xl text-xs space-y-1">
+              <span class="font-bold text-emerald-900">🥇 Layanan Terlaris</span>
+              <p class="text-emerald-800 text-[11px]">Gel Nail Art menyumbang 42% revenue dengan laba kotor tertinggi (81.2%).</p>
+            </div>
+            <div class="p-3.5 bg-amber-50/70 border border-amber-100 rounded-2xl text-xs space-y-1">
+              <span class="font-bold text-amber-900">⚠️ Prediksi Stok Habis</span>
+              <p class="text-amber-800 text-[11px]">No-Wipe Top Coat diprediksi habis dalam 5 hari berdasarkan rata-rata booking.</p>
+            </div>
+            <div class="p-3.5 bg-rose-50/70 border border-rose-100 rounded-2xl text-xs space-y-1">
+              <span class="font-bold text-rose-900">📈 Repeat Client Kuat</span>
+              <p class="text-rose-800 text-[11px]">Repeat customer rate mencapai 43.5% (di atas rata-rata industri salon 30%).</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. TAB: PIXIE ACADEMY & SOP (FITUR BARU) -->
+      <div v-if="activeTab === 'academy'" class="space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-800">📚 Pixie Academy & SOP Knowledge Base</h2>
+            <p class="text-xs text-slate-400">Catat teknik nail prep, formulasi warna, dan SOP studio.</p>
+          </div>
+          <button 
+            @click="showAddModal = true" 
+            class="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-md shadow-rose-200 transition-all flex items-center justify-center gap-2">
+            <i class="fa-solid fa-plus"></i>
+            <span>Tambah Modul SOP</span>
+          </button>
+        </div>
+
+        <!-- Filter Kategori -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+          <button 
+            v-for="cat in academyCategories" 
+            :key="cat"
+            @click="selectedCategory = cat"
+            :class="selectedCategory === cat ? 'bg-rose-500 text-white font-bold' : 'bg-white text-slate-600 border border-slate-100 font-medium'"
+            class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all">
+            {{ cat }}
+          </button>
+        </div>
+
+        <!-- Grid Modul / Materi -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div 
+            v-for="item in filteredAcademy" 
+            :key="item.id"
+            class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+            <div>
+              <div class="h-44 w-full relative bg-slate-100">
+                <img :src="item.image" :alt="item.title" class="w-full h-full object-cover" />
+                <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-rose-600 text-[10px] font-bold px-2.5 py-1 rounded-lg">
+                  {{ item.category }}
+                </span>
+              </div>
+              <div class="p-5 space-y-2.5">
+                <div class="flex items-center gap-2 text-[10px] text-slate-400 font-medium">
+                  <i class="fa-regular fa-clock"></i>
+                  <span>{{ item.updatedAt }} • {{ item.difficulty }}</span>
+                </div>
+                <h3 class="font-bold text-slate-800 text-sm leading-snug">{{ item.title }}</h3>
+                <p class="text-xs text-slate-500 line-clamp-2">{{ item.summary }}</p>
+                
+                <!-- Steps preview -->
+                <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-100 text-[11px] text-slate-600">
+                  <div class="text-[9px] font-bold uppercase text-slate-400">Tahapan Inti:</div>
+                  <div v-for="(step, idx) in item.steps.slice(0, 2)" :key="idx" class="truncate">
+                    {{ idx + 1 }}. {{ step }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-5 pt-0 flex items-center justify-between border-t border-slate-50 mt-2">
+              <span class="text-[10px] bg-rose-50 text-rose-600 font-bold px-2 py-0.5 rounded">
+                💡 {{ item.tag }}
+              </span>
+              <button @click="activeDetailModal = item" class="text-xs font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1">
+                <span>Buka SOP</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. TAB: HPP & INVENTORY -->
+      <div v-if="activeTab === 'hpp'" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- HPP Simulator -->
+          <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
+            <div>
+              <h2 class="text-base font-bold text-slate-800">🧮 Kalkulator HPP Treatment</h2>
+              <p class="text-xs text-slate-400">Hitung margin bersih riil per treatment kuku.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="text-xs font-bold text-slate-700 block mb-1">Nama Layanan</label>
+                <input v-model="calculator.serviceName" type="text" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-rose-500" />
+              </div>
+              <div>
+                <label class="text-xs font-bold text-slate-700 block mb-1">Harga Jual (Rp)</label>
+                <input v-model.number="calculator.sellingPrice" type="number" class="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-rose-500" />
+              </div>
+            </div>
+
+            <!-- Material Items -->
+            <div class="space-y-2">
+              <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                <span>Komponen Bahan</span>
+                <button @click="addCalcItem" class="text-rose-500 hover:underline">+ Tambah Bahan</button>
+              </div>
+              <div v-for="(item, idx) in calculator.materials" :key="idx" class="flex gap-2 items-center">
+                <input v-model="item.name" type="text" placeholder="Nama Bahan" class="text-xs p-2 rounded-xl border border-slate-200 flex-1" />
+                <input v-model.number="item.cost" type="number" placeholder="Cost" class="text-xs p-2 rounded-xl border border-slate-200 w-28" />
+                <button @click="removeCalcItem(idx)" class="text-slate-400 hover:text-rose-500 p-2 text-xs">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Summary Calculations -->
+            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2 text-xs">
+              <div class="flex justify-between">
+                <span class="text-slate-500">Total HPP Material:</span>
+                <span class="font-bold text-slate-800">Rp{{ totalMaterialHpp.toLocaleString('id-ID') }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Gross Profit Bersih:</span>
+                <span class="font-bold text-emerald-600">Rp{{ calculatedProfit.toLocaleString('id-ID') }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-500">Margin Keuntungan:</span>
+                <span class="font-black text-rose-600">{{ calculatedMargin }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stock Alerts -->
+          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 class="text-base font-bold text-slate-800">📦 Low Stock Monitor</h3>
+            <div class="space-y-2.5">
+              <div v-for="inv in inventoryAlerts" :key="inv.id" class="p-3 bg-amber-50/60 border border-amber-100 rounded-2xl flex items-center justify-between">
+                <div>
+                  <h4 class="text-xs font-bold text-slate-800">{{ inv.name }}</h4>
+                  <p class="text-[10px] text-amber-800">Sisa: {{ inv.current }} {{ inv.unit }} (Min: {{ inv.min }})</p>
+                </div>
+                <button class="px-3 py-1 bg-amber-500 text-white font-bold text-[10px] rounded-xl shadow-xs">Restock</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- MOBILE BOTTOM NAVIGATION (Optimized for Mobile/iPad) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-rose-100 px-3 py-2 flex justify-around items-center z-40 shadow-lg">
+      <button 
+        v-for="item in navItems" 
+        :key="item.id"
+        @click="activeTab = item.id"
+        :class="activeTab === item.id ? 'text-rose-500 font-bold' : 'text-slate-400 font-medium'"
+        class="flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all">
+        <i :class="[item.icon, 'text-base']"></i>
+        <span class="text-[10px] tracking-tight">{{ item.label }}</span>
+      </button>
+    </nav>
+
+    <!-- MODAL: BACA DETAIL SOP -->
+    <div v-if="activeDetailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg uppercase">{{ activeDetailModal.category }}</span>
+            <h3 class="text-lg font-black text-slate-800 mt-2">{{ activeDetailModal.title }}</h3>
+          </div>
+          <button @click="activeDetailModal = null" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <img :src="activeDetailModal.image" class="w-full h-48 object-cover rounded-2xl shadow-xs" />
+
+        <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
+          <p>{{ activeDetailModal.summary }}</p>
+          
+          <div class="p-4 bg-rose-50/60 rounded-2xl border border-rose-100">
+            <h4 class="font-bold text-rose-900 mb-2">📋 Langkah Pengerjaan SOP:</h4>
+            <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
+              <li v-for="(s, i) in activeDetailModal.steps" :key="i">{{ s }}</li>
+            </ol>
+          </div>
+
+          <div class="p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl text-amber-900">
+            <span class="font-bold">⚠️ Pro Artist Tip:</span>
+            <p class="text-[11px] mt-0.5">{{ activeDetailModal.proTip }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: TAMBAH MATERI BARU -->
+    <div v-if="showAddModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <h3 class="text-base font-bold text-slate-800">Tambah Catatan Materi / SOP 🦔</h3>
+          <button @click="showAddModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="saveAcademyModule" class="space-y-3 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Judul SOP / Modul</label>
+            <input v-model="newModule.title" type="text" required placeholder="Contoh: Dry Russian Prep Anti-Lifting" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Kategori</label>
+            <select v-model="newModule.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
+              <option>Nail Prep & Russian</option>
+              <option>3D Art & Ribbon</option>
+              <option>Sanitasi & SOP</option>
+              <option>Press-On Making</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">URL Cover Image</label>
+            <input v-model="newModule.image" type="text" placeholder="https://images.unsplash.com/..." class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Ringkasan Materi</label>
+            <textarea v-model="newModule.summary" rows="2" class="w-full p-2.5 border border-slate-200 rounded-xl" placeholder="Penjelasan singkat..."></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Langkah Kerja (Pisahkan dengan baris baru)</label>
+            <textarea v-model="newModuleStepsRaw" rows="3" class="w-full p-2.5 border border-slate-200 rounded-xl" placeholder="1. Bersihkan kuku&#10;2. Buffing kuku"></textarea>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Pro Tip / Golden Rule</label>
+            <input v-model="newModule.proTip" type="text" placeholder="Rahasia agar awet..." class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="showAddModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Modul</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- VUE 3 LOGIC & CHART INITIALIZER -->
+  <script>
+    const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+
+    createApp({
+      setup() {
+        const activeTab = ref('dashboard');
+        const showAddModal = ref(false);
+        const activeDetailModal = ref(null);
+        const chartPeriod = ref('monthly');
+        const selectedCategory = ref('Semua');
+
+        let lineChartInstance = null;
+        let doughnutChartInstance = null;
+
+        const navItems = [
+          { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-house' },
+          { id: 'analytics', label: 'Analytics', icon: 'fa-solid fa-chart-line' },
+          { id: 'academy', label: 'Academy & SOP', icon: 'fa-solid fa-graduation-cap', badge: 'New' },
+          { id: 'hpp', label: 'HPP Calculator', icon: 'fa-solid fa-calculator' },
+        ];
+
+        const currentTabTitle = computed(() => {
+          const item = navItems.find(n => n.id === activeTab.value);
+          return item ? item.label : 'Dashboard';
+        });
+
+        // Appointments Dummy
+        const appointments = ref([
+          { id: 1, customer: 'Sarah', service: 'Gel Nail Art + Y2K Ribbon', time: '10:00 AM', duration: '90m', status: 'Confirmed' },
+          { id: 2, customer: 'Naya', service: 'Full Set Softgel Extension', time: '01:00 PM', duration: '120m', status: 'Confirmed' },
+          { id: 3, customer: 'Putri', service: 'Overlay + Mirror Chrome', time: '04:00 PM', duration: '75m', status: 'Pending' },
+        ]);
+
+        // Pixie Academy SOP
+        const academyCategories = ['Semua', 'Nail Prep & Russian', '3D Art & Ribbon', 'Sanitasi & SOP', 'Press-On Making'];
+        const academyArticles = ref([
+          {
+            id: 1,
+            title: 'SOP Dry Russian Manicure Anti-Lifting',
+            category: 'Nail Prep & Russian',
+            difficulty: 'Intermediate',
+            updatedAt: '18 Aug 2026',
+            tag: 'Prep Awet 4 Minggu',
+            image: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=600&q=80',
+            summary: 'Protokol pembersihan kutikula kering menggunakan diamond flame bit 014 agar gel polish bertahan 4+ minggu.',
+            steps: [
+              'Dorong eponychium lembut menggunakan cuticle pusher 45°',
+              'Gunakan flame bit pada 6.000 RPM untuk membersihkan pterygium',
+              'Buffing kuku alami dengan buffer grit 180 secara searah',
+              'Dehidrasi kuku dengan 99% Isopropyl Alcohol',
+              'Aplikasikan acidless primer tipis tanpa mengenai kulit'
+            ],
+            proTip: 'Hindari merendam jari dengan air sebelum aplikasi gel; hidrasi membuat lempeng kuku melar dan memicu lifting.'
+          },
+          {
+            id: 2,
+            title: 'Teknik 3D Emboss Ribbon & Mirror Chrome',
+            category: '3D Art & Ribbon',
+            difficulty: 'Advanced',
+            updatedAt: '15 Aug 2026',
+            tag: 'Y2K Trend',
+            image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=600&q=80',
+            summary: 'Timing curing no-wipe top coat untuk chrome efek kaca cermin dan teknik membentuk pita ribbon timbul.',
+            steps: [
+              'Cure no-wipe top coat selama tepat 30 detik (Lampu LED 48W)',
+              'Gosokkan bubuk chrome segera selagi permukaan masih hangat',
+              'Kunci ujung kuku (free-edge) dengan base coat tipis',
+              'Bentuk ribbon menggunakan 3D solid clay gel'
+            ],
+            proTip: 'Jika hasil chrome terlihat berpasir/glittery, kurangi durasi curing top coat dari 30s ke 20s.'
+          }
+        ]);
+
+        const filteredAcademy = computed(() => {
+          if (selectedCategory.value === 'Semua') return academyArticles.value;
+          return academyArticles.value.filter(a => a.category === selectedCategory.value);
+        });
+
+        // Add Module Form
+        const newModule = ref({ title: '', category: 'Nail Prep & Russian', image: '', summary: '', proTip: '' });
+        const newModuleStepsRaw = ref('');
+
+        const saveAcademyModule = () => {
+          if (!newModule.value.title) return;
+          academyArticles.value.unshift({
+            id: Date.now(),
+            title: newModule.value.title,
+            category: newModule.value.category,
+            difficulty: 'Beginner',
+            updatedAt: '19 Aug 2026',
+            tag: 'New SOP',
+            image: newModule.value.image || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
+            summary: newModule.value.summary,
+            steps: newModuleStepsRaw.value.split('\n').filter(s => s.trim() !== ''),
+            proTip: newModule.value.proTip || 'Pastikan sanitasi alat sebelum pengerjaan.'
+          });
+          showAddModal.value = false;
+        };
+
+        // HPP Calculator
+        const calculator = ref({
+          serviceName: 'Gel Nail Art 🎀',
+          sellingPrice: 85000,
+          materials: [
+            { name: 'Base Coat Gel (0.2ml)', cost: 600 },
+            { name: 'Color Gel (0.3ml)', cost: 1200 },
+            { name: 'Top Coat Glossy (0.2ml)', cost: 800 },
+            { name: 'Prep & Alcohol Sanitizer', cost: 700 },
+            { name: 'Y2K Ribbon Charms', cost: 2500 },
+          ]
+        });
+
+        const addCalcItem = () => calculator.value.materials.push({ name: '', cost: 0 });
+        const removeCalcItem = (idx) => calculator.value.materials.splice(idx, 1);
+
+        const totalMaterialHpp = computed(() => {
+          return calculator.value.materials.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
+        });
+
+        const calculatedProfit = computed(() => calculator.value.sellingPrice - totalMaterialHpp.value);
+        const calculatedMargin = computed(() => {
+          if (!calculator.value.sellingPrice) return 0;
+          return ((calculatedProfit.value / calculator.value.sellingPrice) * 100).toFixed(1);
+        });
+
+        // Inventory Alerts
+        const inventoryAlerts = ref([
+          { id: 1, name: 'Glossy No-Wipe Top Coat', current: 1.2, unit: 'ml', min: 3 },
+          { id: 2, name: 'Acid-Free Primer', current: 0.8, unit: 'ml', min: 2 },
+          { id: 3, name: '99% Alcohol Dispenser', current: 40, unit: 'ml', min: 100 },
+        ]);
+
+        // Charts Initializer
+        const initCharts = () => {
+          const lineCtx = document.getElementById('salesLineChart');
+          const doughnutCtx = document.getElementById('serviceDoughnutChart');
+
+          if (lineCtx) {
+            if (lineChartInstance) lineChartInstance.destroy();
+            lineChartInstance = new Chart(lineCtx, {
+              type: 'line',
+              data: {
+                labels: chartPeriod.value === 'monthly' ? ['Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu'] : ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
+                datasets: [
+                  {
+                    label: 'Gross Revenue',
+                    data: chartPeriod.value === 'monthly' ? [4.2, 5.1, 5.8, 6.4, 7.1, 7.5] : [0.45, 0.62, 0.35, 0.80, 1.15, 1.45, 1.20],
+                    borderColor: '#f43f5e',
+                    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3
+                  },
+                  {
+                    label: 'Net Profit',
+                    data: chartPeriod.value === 'monthly' ? [2.8, 3.4, 3.9, 4.2, 4.5, 4.8] : [0.30, 0.45, 0.22, 0.55, 0.80, 1.05, 0.82],
+                    borderColor: '#10b981',
+                    borderDash: [4, 4],
+                    tension: 0.4,
+                    borderWidth: 2
+                  }
+                ]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 10, weight: 'bold' } } } },
+                scales: {
+                  y: { ticks: { callback: v => 'Rp' + v + (chartPeriod.value === 'monthly' ? 'jt' : 'jt') } }
+                }
+              }
+            });
+          }
+
+          if (doughnutCtx) {
+            if (doughnutChartInstance) doughnutChartInstance.destroy();
+            doughnutChartInstance = new Chart(doughnutCtx, {
+              type: 'doughnut',
+              data: {
+                labels: ['Gel Nail Art', 'Extension', 'Press-On', 'Manicure'],
+                datasets: [{
+                  data: [42, 24, 18, 16],
+                  backgroundColor: ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3'],
+                  borderWidth: 2
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+                cutout: '68%'
+              }
+            });
+          }
+        };
+
+        const switchChartPeriod = (period) => {
+          chartPeriod.value = period;
+          initCharts();
+        };
+
+        watch(activeTab, (newTab) => {
+          if (newTab === 'analytics') {
+            nextTick(() => initCharts());
+          }
+        });
+
+        onMounted(() => {
+          if (activeTab.value === 'analytics') initCharts();
+        });
+
+        return {
+          activeTab,
+          navItems,
+          currentTabTitle,
+          appointments,
+          academyCategories,
+          academyArticles,
+          filteredAcademy,
+          showAddModal,
+          activeDetailModal,
+          newModule,
+          newModuleStepsRaw,
+          saveAcademyModule,
+          calculator,
+          addCalcItem,
+          removeCalcItem,
+          totalMaterialHpp,
+          calculatedProfit,
+          calculatedMargin,
+          inventoryAlerts,
+          chartPeriod,
+          switchChartPeriod,
+          selectedCategory
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
