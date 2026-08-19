@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Pixie Studio Manager 🦔🎀</title>
   
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome 6 Icons -->
@@ -17,6 +19,24 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
   <script>
+    const SUPABASE_URL = 'https://njzrahutipfremnofydv.supabase.co';
+    const SUPABASE_ANON_KEY = 'GnUW51eBM1sLiySX'; // Anon Key Kamu
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Contoh Fetch Data saat Web dibuka:
+    const fetchInitialData = async () => {
+      const { data: custData } = await supabase.from('customers').select('*').order('id', { ascending: false });
+      if (custData) customers.value = custData;
+    
+      const { data: invData } = await supabase.from('inventory').select('*').order('id', { ascending: false });
+      if (invData) inventory.value = invData;
+    
+      const { data: appData } = await supabase.from('appointments').select('*').order('id', { ascending: false });
+      if (appData) appointments.value = appData;
+    };
+    
+    // Panggil di onMounted(() => { fetchInitialData(); });
+    
     tailwind.config = {
       theme: {
         extend: {
