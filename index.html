@@ -9,6 +9,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome 6 Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- html2canvas untuk Save Invoice to PNG -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- Vue 3 CDN -->
@@ -58,7 +60,7 @@
           </div>
           <div>
             <h1 class="font-black text-lg text-slate-800 tracking-tight leading-none">Pixie Studio</h1>
-            <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider">Manager & POS</span>
+            <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider">Manager & Finance</span>
           </div>
         </div>
 
@@ -67,13 +69,13 @@
           <button 
             v-for="item in navItems" 
             :key="item.id"
-            @click="activeTab = item.id"
+            @click="switchTab(item.id)"
             :class="activeTab === item.id ? 'bg-rose-50 text-rose-600 font-bold shadow-xs' : 'text-slate-500 hover:bg-slate-50 font-medium'"
             class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm transition-all duration-150 text-left">
             <i :class="[item.icon, 'w-5 text-center text-base', activeTab === item.id ? 'text-rose-500' : 'text-slate-400']"></i>
             <span>{{ item.label }}</span>
             <span v-if="item.id === 'inventory' && lowStockCount > 0" class="ml-auto bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">
-              {{ lowStockCount }} Low
+              {{ lowStockCount }}
             </span>
           </button>
         </nav>
@@ -105,18 +107,18 @@
     <!-- MAIN CONTENT AREA -->
     <main class="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl mx-auto w-full overflow-x-hidden">
       
-      <!-- LOW STOCK ALERT BANNER (IF ANY) -->
-      <div v-if="lowStockCount > 0" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-3xl flex items-center justify-between shadow-xs">
+      <!-- LOW STOCK ALERT BANNER -->
+      <div v-if="lowStockCount > 0 && activeTab !== 'inventory'" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-3xl flex items-center justify-between shadow-xs">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center text-sm font-bold shrink-0">
             <i class="fa-solid fa-triangle-exclamation"></i>
           </div>
           <div>
             <h4 class="font-bold text-slate-800 text-xs sm:text-sm">Peringatan Stok Rendah ({{ lowStockCount }} Bahan)</h4>
-            <p class="text-[11px] text-amber-800">Beberapa material kuku telah mencapai batas minimum. Segera restock!</p>
+            <p class="text-[11px] text-amber-800">Bahan telah mencapai batas minimum. Buka tab inventaris untuk restock!</p>
           </div>
         </div>
-        <button @click="activeTab = 'inventory'" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0">
+        <button @click="switchTab('inventory')" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0">
           Cek Stok
         </button>
       </div>
@@ -127,12 +129,12 @@
           <div>
             <span class="bg-white/20 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Live Overview</span>
             <h2 class="text-2xl sm:text-3xl font-black mt-2">Good evening, Ayu! 🦔🎀</h2>
-            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & {{ customers.length }} customer aktif.</p>
+            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & total omset bulan ini Rp{{ currentMonthReport.revenue.toLocaleString('id-ID') }}.</p>
           </div>
           <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-left md:text-right w-full md:w-auto">
-            <div class="text-[10px] text-rose-100 uppercase font-semibold">Total Omset Selesai</div>
-            <div class="text-2xl font-black mt-0.5">Rp{{ totalRevenueMonthly.toLocaleString('id-ID') }}</div>
-            <div class="text-[10px] text-emerald-200 font-bold">✨ Dari {{ completedAppointments.length }} Treatment Selesai</div>
+            <div class="text-[10px] text-rose-100 uppercase font-semibold">Net Profit Bulan Ini</div>
+            <div class="text-2xl font-black mt-0.5">Rp{{ currentMonthReport.netProfit.toLocaleString('id-ID') }}</div>
+            <div class="text-[10px] text-emerald-200 font-bold">✨ Setelah Biaya Restock & HPP</div>
           </div>
         </div>
 
@@ -147,11 +149,19 @@
           </div>
 
           <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
-            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-sm sm:text-base mb-2">
-              <i class="fa-solid fa-users"></i>
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm sm:text-base mb-2">
+              <i class="fa-solid fa-coins"></i>
             </div>
-            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Total Customer</div>
-            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">{{ customers.length }} Orang</div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Omset Hari Ini</div>
+            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">Rp{{ todayReport.revenue.toLocaleString('id-ID') }}</div>
+          </div>
+
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
+            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center text-sm sm:text-base mb-2">
+              <i class="fa-solid fa-file-invoice-dollar"></i>
+            </div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Total Biaya Restock</div>
+            <div class="text-base sm:text-xl font-bold text-rose-600 mt-0.5">Rp{{ totalRestockExpenses.toLocaleString('id-ID') }}</div>
           </div>
 
           <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
@@ -161,14 +171,6 @@
             <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Low Stock Alert</div>
             <div class="text-base sm:text-xl font-bold text-amber-600 mt-0.5">{{ lowStockCount }} Bahan</div>
           </div>
-
-          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
-            <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm sm:text-base mb-2">
-              <i class="fa-solid fa-hand-sparkles"></i>
-            </div>
-            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Menu Layanan</div>
-            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">{{ products.length }} Treatment</div>
-          </div>
         </div>
 
         <!-- Jadwal Mendatang & Quick POS Actions -->
@@ -176,7 +178,7 @@
           <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
             <div class="flex items-center justify-between">
               <h3 class="font-bold text-slate-800 text-sm sm:text-base">📅 Antrean Jadwal Terdekat</h3>
-              <button @click="activeTab = 'appointments'" class="text-xs font-bold text-rose-500 hover:underline">+ Tambah Booking</button>
+              <button @click="switchTab('appointments')" class="text-xs font-bold text-rose-500 hover:underline">+ Tambah Booking</button>
             </div>
             <div v-if="appointments.length === 0" class="text-center py-8 text-slate-400 text-xs">Belum ada booking terjadwal.</div>
             <div class="space-y-3">
@@ -193,7 +195,7 @@
                     <i class="fa-solid fa-receipt"></i> Struk
                   </button>
                   <button v-if="app.status !== 'Completed'" @click="completeAppointment(app.id)" class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-[11px] font-bold shadow-xs">
-                    Selesaikan & Kurangi Stok
+                    Selesaikan
                   </button>
                   <span v-else class="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md">Completed</span>
                 </div>
@@ -203,11 +205,11 @@
 
           <!-- Customer Spotlight -->
           <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
-            <h3 class="font-bold text-slate-800 text-sm sm:text-base">💅 Customer Terakhir</h3>
+            <h3 class="font-bold text-slate-800 text-sm sm:text-base">💅 Customer Terdaftar</h3>
             <div v-if="customers.length > 0" class="p-4 bg-rose-50/60 rounded-2xl border border-rose-100 text-xs space-y-2">
               <div class="flex justify-between items-center pb-2 border-b border-rose-100">
                 <span class="font-bold text-slate-800">{{ customers[0].name }}</span>
-                <button @click="editCustomer(customers[0])" class="text-rose-500 font-bold hover:underline">Edit</button>
+                <span class="text-[10px] bg-rose-200 text-rose-800 px-2 py-0.5 rounded-md font-bold">{{ getCustomerHistory(customers[0].name).length }}x Kunjungan</span>
               </div>
               <p><strong class="text-slate-700">WhatsApp:</strong> {{ customers[0].phone }}</p>
               <p><strong class="text-slate-700">Sizing Press-On:</strong> {{ customers[0].sizing || '-' }}</p>
@@ -217,7 +219,104 @@
         </div>
       </div>
 
-      <!-- 2. TAB: CUSTOMER MANAGEMENT (CRM + HISTORY + EDIT) -->
+      <!-- 2. TAB: LAPORAN KEUANGAN & GRAFIK (HARIAN, MINGGUAN, BULANAN, TAHUNAN) -->
+      <div v-if="activeTab === 'reports'" class="space-y-6">
+        <!-- Header & Periode Switcher -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
+          <div>
+            <h2 class="text-base sm:text-lg font-bold text-slate-800">📊 Laporan Keuangan & Analisis Laba</h2>
+            <p class="text-xs text-slate-400">Kompilasi otomatis omset dari appointment selesai vs pengeluaran restock & HPP.</p>
+          </div>
+          <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
+            <button 
+              v-for="period in ['daily', 'weekly', 'monthly', 'yearly']" 
+              :key="period"
+              @click="setReportPeriod(period)"
+              :class="reportPeriod === period ? 'bg-white text-rose-600 font-bold shadow-xs' : 'text-slate-500 font-medium'"
+              class="px-3.5 py-1.5 rounded-xl text-xs capitalize transition-all whitespace-nowrap">
+              {{ period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : period === 'monthly' ? 'Bulanan' : 'Tahunan' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 3 Financial Summary Cards for Selected Period -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
+            <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
+              <span>Gross Revenue (Omset)</span>
+              <span class="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeReportData.treatmentCount }} Treatment Selesai</span>
+            </div>
+            <div class="text-2xl font-black text-slate-800">Rp{{ activeReportData.revenue.toLocaleString('id-ID') }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Total pembayaran masuk dari client</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
+            <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
+              <span>Total Pengeluaran (Expense)</span>
+              <span class="text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeReportData.restockCount }}x Restock</span>
+            </div>
+            <div class="text-2xl font-black text-rose-600">Rp{{ activeReportData.expenses.toLocaleString('id-ID') }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Pembelian stok barang & HPP material</p>
+          </div>
+
+          <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
+            <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
+              <span>Net Profit (Laba Bersih)</span>
+              <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">Margin: {{ activeReportData.margin }}%</span>
+            </div>
+            <div class="text-2xl font-black text-emerald-600">Rp{{ activeReportData.netProfit.toLocaleString('id-ID') }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Omset dikurangi seluruh biaya riil</p>
+          </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800">📈 Visualisasi Grafik Performa Finansial</h3>
+              <p class="text-[11px] text-slate-400">Komparasi pendapatan, biaya restock, dan laba bersih periode {{ reportPeriod }}.</p>
+            </div>
+          </div>
+          <div class="relative h-64 sm:h-72 w-full">
+            <canvas id="financialChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Transaction & Expense Logs Table for Selected Period -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Income From Appointments -->
+          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-800 text-sm">💅 Pemasukan Appointment ({{ activeReportData.incomeList.length }})</h3>
+            <div v-if="activeReportData.incomeList.length === 0" class="text-xs text-slate-400 text-center py-6">Tidak ada transaksi pada periode ini.</div>
+            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div v-for="inc in activeReportData.incomeList" :key="inc.id" class="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex justify-between items-center text-xs">
+                <div>
+                  <p class="font-bold text-slate-800">{{ inc.serviceName }}</p>
+                  <p class="text-[10px] text-slate-400">{{ inc.customerName }} • {{ inc.date }} {{ inc.time }}</p>
+                </div>
+                <span class="font-black text-emerald-600">+Rp{{ inc.price.toLocaleString('id-ID') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expenses From Restock -->
+          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-800 text-sm">📦 Pengeluaran Restock Barang ({{ activeReportData.expenseList.length }})</h3>
+            <div v-if="activeReportData.expenseList.length === 0" class="text-xs text-slate-400 text-center py-6">Tidak ada restock pada periode ini.</div>
+            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div v-for="exp in activeReportData.expenseList" :key="exp.id" class="p-3 bg-rose-50/50 border border-rose-100 rounded-2xl flex justify-between items-center text-xs">
+                <div>
+                  <p class="font-bold text-slate-800">{{ exp.itemName }} (+{{ exp.qty }} {{ exp.unit }})</p>
+                  <p class="text-[10px] text-slate-400">{{ exp.date }} • {{ exp.notes || 'Pembelian stok' }}</p>
+                </div>
+                <span class="font-black text-rose-600">-Rp{{ exp.cost.toLocaleString('id-ID') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. TAB: CUSTOMER MANAGEMENT -->
       <div v-if="activeTab === 'customers'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -302,7 +401,7 @@
         </div>
       </div>
 
-      <!-- 3. TAB: APPOINTMENTS & STRUK INVOICE -->
+      <!-- 4. TAB: APPOINTMENTS & STRUK INVOICE -->
       <div v-if="activeTab === 'appointments'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -373,7 +472,7 @@
         </div>
       </div>
 
-      <!-- 4. TAB: SERVICES & HPP CALCULATOR (EDITABLE) -->
+      <!-- 5. TAB: SERVICES & HPP -->
       <div v-if="activeTab === 'products'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -407,7 +506,6 @@
                 </div>
               </div>
 
-              <!-- HPP Breakdown -->
               <div class="mt-4 p-3 bg-slate-50 rounded-2xl space-y-1.5 text-xs border border-slate-100">
                 <div class="flex justify-between">
                   <span class="text-slate-400">Harga Default / Min:</span>
@@ -423,7 +521,6 @@
                 </div>
               </div>
 
-              <!-- Material Recipes linked with Inventory -->
               <div class="mt-3">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Resep Bahan yang Berkurang Otomatis:</span>
                 <div class="flex flex-wrap gap-1">
@@ -437,12 +534,12 @@
         </div>
       </div>
 
-      <!-- 5. TAB: INVENTORY & STOCK ALERT (FITUR BARU) -->
+      <!-- 6. TAB: INVENTORY & RESTOCK EXPENSE TRACKER -->
       <div v-if="activeTab === 'inventory'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
-            <h2 class="text-base sm:text-lg font-bold text-slate-800">📦 Inventaris & Stok Bahan Baku</h2>
-            <p class="text-xs text-slate-400">Stok otomatis berkurang sedikit demi sedikit setiap treatment selesai dikerjakan.</p>
+            <h2 class="text-base sm:text-lg font-bold text-slate-800">📦 Inventaris & Restock Biaya</h2>
+            <p class="text-xs text-slate-400">Setiap restock otomatis menambah stok dan tercatat ke pos pengeluaran laporan keuangan.</p>
           </div>
           <button 
             @click="openAddInventoryModal" 
@@ -497,61 +594,33 @@
                 Stok Aman
               </span>
 
-              <button @click="quickRestock(inv)" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition-all">
-                + Restock
+              <button @click="openRestockModal(inv)" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all shadow-xs">
+                + Restock & Catat Biaya
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 6. TAB: PIXIE ACADEMY & SOP -->
+      <!-- 7. TAB: ACADEMY SOP -->
       <div v-if="activeTab === 'academy'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
             <h2 class="text-base sm:text-lg font-bold text-slate-800">📚 Pixie Academy & SOP Knowledge Base</h2>
             <p class="text-xs text-slate-400">Kumpulan catatan teknik, SOP steril, formula nail art, dan tutorial.</p>
           </div>
-          <button 
-            @click="showAddAcademyModal = true" 
-            class="px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-2xl shadow-md shadow-rose-200 flex items-center justify-center gap-2">
-            <i class="fa-solid fa-plus"></i>
-            <span>Tambah Materi Baru</span>
-          </button>
-        </div>
-
-        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-          <button 
-            v-for="cat in academyCategories" 
-            :key="cat"
-            @click="selectedCategory = cat"
-            :class="selectedCategory === cat ? 'bg-rose-500 text-white font-bold shadow-xs' : 'bg-white text-slate-600 border border-slate-100 font-medium'"
-            class="px-4 py-2 rounded-xl text-xs whitespace-nowrap transition-all">
-            {{ cat }}
-          </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <div v-for="item in filteredAcademy" :key="item.id" class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
-            <div>
-              <div class="h-44 w-full relative bg-slate-100">
-                <img :src="item.image" :alt="item.title" class="w-full h-full object-cover" />
-                <span class="absolute top-3 left-3 bg-white/90 backdrop-blur-md text-rose-600 text-[10px] font-bold px-2.5 py-1 rounded-lg">{{ item.category }}</span>
+          <div v-for="item in academyArticles" :key="item.id" class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs">
+            <img :src="item.image" class="w-full h-44 object-cover" />
+            <div class="p-5 space-y-2.5">
+              <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg uppercase">{{ item.category }}</span>
+              <h3 class="font-bold text-slate-800 text-sm leading-snug">{{ item.title }}</h3>
+              <p class="text-xs text-slate-500 line-clamp-2">{{ item.summary }}</p>
+              <div class="p-3 bg-amber-50 text-amber-900 rounded-2xl text-[11px] font-medium border border-amber-100/70">
+                💡 <strong>Pro Tip:</strong> {{ item.proTip }}
               </div>
-              <div class="p-5 space-y-2.5">
-                <h3 class="font-bold text-slate-800 text-sm leading-snug">{{ item.title }}</h3>
-                <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed">{{ item.summary }}</p>
-                <div class="p-3 bg-amber-50 text-amber-900 rounded-2xl text-[11px] font-medium border border-amber-100/70">
-                  💡 <strong>Pro Tip:</strong> {{ item.proTip }}
-                </div>
-              </div>
-            </div>
-            <div class="p-5 pt-0 flex items-center justify-between border-t border-slate-50 mt-2">
-              <span class="text-[10px] bg-rose-50 text-rose-600 font-bold px-2.5 py-1 rounded-lg">#{{ item.tag }}</span>
-              <button @click="activeDetailModal = item" class="text-xs font-bold text-rose-500 hover:text-rose-700 flex items-center gap-1">
-                <span>Baca Materi</span>
-                <i class="fa-solid fa-arrow-right text-[10px]"></i>
-              </button>
             </div>
           </div>
         </div>
@@ -564,7 +633,7 @@
       <button 
         v-for="item in navItems" 
         :key="item.id"
-        @click="activeTab = item.id"
+        @click="switchTab(item.id)"
         :class="activeTab === item.id ? 'text-rose-500 font-bold' : 'text-slate-400 font-medium'"
         class="flex flex-col items-center gap-1 py-1 px-2 rounded-xl transition-all">
         <i :class="[item.icon, 'text-base']"></i>
@@ -572,326 +641,125 @@
       </button>
     </nav>
 
-    <!-- MODAL 1: TAMBAH / EDIT CUSTOMER -->
+    <!-- MODAL RESTOCK DENGAN INPUT HARGA/BIAYA MASUK KE LAPORAN -->
+    <div v-if="showRestockModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <h3 class="text-sm font-bold text-slate-800">Restock {{ targetRestockItem?.name }} 📦</h3>
+          <button @click="showRestockModal = false" class="text-slate-400 hover:text-slate-600">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="submitRestock" class="space-y-3 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Jumlah Tambahan ({{ targetRestockItem?.unit }})</label>
+            <input v-model.number="restockForm.qty" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Total Biaya Beli / Restock (Rp)</label>
+            <input v-model.number="restockForm.cost" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" />
+            <span class="text-[10px] text-slate-400 mt-0.5 block">*Otomatis masuk ke pos pengeluaran laporan keuangan</span>
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Catatan / Supplier (Opsional)</label>
+            <input v-model="restockForm.notes" type="text" placeholder="Beli di Supplier A" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+
+          <div class="flex justify-end gap-2 pt-2">
+            <button type="button" @click="showRestockModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Restock</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL CUSTOMER -->
     <div v-if="showCustomerModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
           <h3 class="text-base font-bold text-slate-800">{{ isEditingCustomer ? 'Edit Customer' : 'Tambah Customer Baru' }} 💅</h3>
-          <button @click="showCustomerModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button @click="showCustomerModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
         <form @submit.prevent="saveCustomer" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Nama Lengkap</label>
-            <input v-model="customerForm.name" type="text" required placeholder="Sarah Aurelia" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Nomor WhatsApp (diawali 62/08)</label>
-            <input v-model="customerForm.phone" type="text" required placeholder="081234567890" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Ukuran Press-On (Thumb / Index / Mid / Ring / Pinky)</label>
-            <input v-model="customerForm.sizing" type="text" placeholder="S • XS • S • XS • XS" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Catatan Sensitivitas / Alergi</label>
-            <input v-model="customerForm.notes" type="text" placeholder="Kutikula mudah perih, jangan potong terlalu dalam" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showCustomerModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan</button>
-          </div>
+          <div><label class="font-bold text-slate-700 block mb-1">Nama Lengkap</label><input v-model="customerForm.name" type="text" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+          <div><label class="font-bold text-slate-700 block mb-1">WhatsApp</label><input v-model="customerForm.phone" type="text" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Ukuran Press-On</label><input v-model="customerForm.sizing" type="text" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Catatan</label><input v-model="customerForm.notes" type="text" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+          <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showCustomerModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button><button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan</button></div>
         </form>
       </div>
     </div>
 
-    <!-- MODAL 2: BOOKING JADWAL DENGAN MINIMUM & CUSTOM PRICE -->
+    <!-- MODAL BOOKING -->
     <div v-if="showBookingModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
           <h3 class="text-base font-bold text-slate-800">Booking Jadwal Treatment 📅</h3>
-          <button @click="showBookingModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button @click="showBookingModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
         <form @submit.prevent="saveAppointment" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Pilih Customer</label>
-            <select v-model="selectedCustomerObj" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
-              <option :value="null" disabled>-- Pilih Customer --</option>
-              <option v-for="c in customers" :key="c.id" :value="c">{{ c.name }} ({{ c.phone }})</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Pilih Treatment</label>
-            <select v-model="selectedProductObj" @change="onSelectProductChange" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
-              <option :value="null" disabled>-- Pilih Treatment --</option>
-              <option v-for="p in products" :key="p.id" :value="p">{{ p.name }} (Default: Rp{{ p.sellingPrice.toLocaleString('id-ID') }})</option>
-            </select>
-          </div>
-
-          <!-- Custom Price Input with Default as Minimum Base -->
-          <div>
-            <div class="flex justify-between items-center mb-1">
-              <label class="font-bold text-slate-700">Harga Final Transaksi (Rp)</label>
-              <span v-if="selectedProductObj" class="text-[10px] text-rose-500 font-semibold">Min. Base: Rp{{ selectedProductObj.sellingPrice.toLocaleString('id-ID') }}</span>
-            </div>
-            <input 
-              v-model.number="appointmentForm.customPrice" 
-              type="number" 
-              :min="selectedProductObj ? selectedProductObj.sellingPrice : 0" 
-              required 
-              class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" 
-              placeholder="Bisa disesuaikan jika ada add-on/ekstra" 
-            />
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Tanggal</label>
-              <input v-model="appointmentForm.date" type="date" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Jam Mulai</label>
-              <input v-model="appointmentForm.time" type="time" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showBookingModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Jadwal</button>
-          </div>
+          <div><label class="font-bold text-slate-700 block mb-1">Customer</label><select v-model="selectedCustomerObj" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required><option :value="null" disabled>-- Pilih Customer --</option><option v-for="c in customers" :key="c.id" :value="c">{{ c.name }}</option></select></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Treatment</label><select v-model="selectedProductObj" @change="onSelectProductChange" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required><option :value="null" disabled>-- Pilih Treatment --</option><option v-for="p in products" :key="p.id" :value="p">{{ p.name }} (Rp{{ p.sellingPrice.toLocaleString('id-ID') }})</option></select></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Harga Transaksi (Rp)</label><input v-model.number="appointmentForm.customPrice" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" /></div>
+          <div class="grid grid-cols-2 gap-2"><div><label class="font-bold text-slate-700 block mb-1">Tanggal</label><input v-model="appointmentForm.date" type="date" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div><div><label class="font-bold text-slate-700 block mb-1">Jam Mulai</label><input v-model="appointmentForm.time" type="time" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div></div>
+          <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showBookingModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button><button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan</button></div>
         </form>
       </div>
     </div>
 
-    <!-- MODAL 3: TAMBAH / EDIT TREATMENT & HPP -->
-    <div v-if="showProductModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
-        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-          <h3 class="text-base font-bold text-slate-800">{{ isEditingProduct ? 'Edit Treatment & HPP' : 'Tambah Treatment Baru' }} 🧮</h3>
-          <button @click="showProductModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <form @submit.prevent="saveProduct" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Nama Layanan</label>
-            <input v-model="productForm.name" type="text" required placeholder="Gel Nail Art Ribbon 3D" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Kategori</label>
-              <select v-model="productForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                <option>Gel Manicure</option>
-                <option>Nail Art Custom</option>
-                <option>Softgel Extension</option>
-                <option>Press-On Set</option>
-                <option>Care & Removal</option>
-              </select>
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Durasi (Menit)</label>
-              <input v-model.number="productForm.duration" type="number" required placeholder="90" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-          </div>
-
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Harga Jual Default / Minimum (Rp)</label>
-            <input v-model.number="productForm.sellingPrice" type="number" required placeholder="85000" class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" />
-          </div>
-
-          <!-- Material Builder with qty per usage -->
-          <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-slate-700 text-[11px] uppercase">Bahan Yang Terpakai:</span>
-              <button type="button" @click="addProductMaterial" class="text-rose-500 font-bold hover:underline">+ Tambah Bahan</button>
-            </div>
-            <div v-for="(m, idx) in productForm.materials" :key="idx" class="flex gap-2 items-center">
-              <input v-model="m.name" type="text" placeholder="Bahan" class="p-2 border border-slate-200 rounded-xl flex-1 bg-white" />
-              <input v-model.number="m.qty" type="number" step="0.1" placeholder="Qty" class="p-2 border border-slate-200 rounded-xl w-16 bg-white" title="Jumlah pemakaian per treatment" />
-              <input v-model.number="m.cost" type="number" placeholder="Cost" class="p-2 border border-slate-200 rounded-xl w-20 bg-white" />
-              <button type="button" @click="removeProductMaterial(idx)" class="text-slate-400 hover:text-rose-500 p-1">
-                <i class="fa-solid fa-trash"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 space-y-1 text-xs">
-            <div class="flex justify-between">
-              <span class="text-slate-500">Total HPP Material:</span>
-              <span class="font-bold text-slate-800">Rp{{ calculateTotalHpp(productForm.materials).toLocaleString('id-ID') }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Gross Profit Bersih:</span>
-              <span class="font-bold text-emerald-600">Rp{{ (productForm.sellingPrice - calculateTotalHpp(productForm.materials)).toLocaleString('id-ID') }}</span>
-            </div>
-            <div class="flex justify-between font-bold">
-              <span class="text-rose-600">Margin Keuntungan:</span>
-              <span class="text-rose-600">{{ calculateMargin(productForm.sellingPrice, calculateTotalHpp(productForm.materials)) }}%</span>
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showProductModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Layanan</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- MODAL 4: TAMBAH / EDIT INVENTARIS BAHAN -->
-    <div v-if="showInventoryModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
-        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-          <h3 class="text-base font-bold text-slate-800">{{ isEditingInventory ? 'Edit Bahan Baku' : 'Tambah Bahan Baru' }} 📦</h3>
-          <button @click="showInventoryModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <form @submit.prevent="saveInventory" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Nama Bahan</label>
-            <input v-model="inventoryForm.name" type="text" required placeholder="Top Coat Glossy No-Wipe" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Kategori</label>
-              <select v-model="inventoryForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                <option>Gel Polish</option>
-                <option>Prep & Liquid</option>
-                <option>Charms & Ribbon</option>
-                <option>Extension Tips</option>
-                <option>Hygiene & Steril</option>
-              </select>
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Satuan Unit</label>
-              <input v-model="inventoryForm.unit" type="text" required placeholder="ml / pcs / botol" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Stok Saat Ini</label>
-              <input v-model.number="inventoryForm.stock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold" />
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Batas Minimum</label>
-              <input v-model.number="inventoryForm.minStock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Cost / Unit (Rp)</label>
-              <input v-model.number="inventoryForm.costPerUnit" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-          </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showInventoryModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Stok</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- MODAL 5: CETAK STRUK / INVOICE AESTHETIC (THERMAL POS / PDF / PNG) -->
+    <!-- MODAL STRUK -->
     <div v-if="activeInvoice" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
-          <span class="text-xs font-bold text-slate-400">Preview Invoice / Struk</span>
-          <button @click="activeInvoice = null" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <span class="text-xs font-bold text-slate-400">Invoice / Struk</span>
+          <button @click="activeInvoice = null" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
-        <!-- Printable Area -->
         <div id="printable-receipt" class="p-4 bg-white border border-slate-200 rounded-2xl font-mono text-xs space-y-3 text-slate-800">
-          <div class="text-center space-y-0.5 pb-2 border-b border-dashed border-slate-300">
-            <h3 class="font-black text-sm tracking-tight">PIXIE STUDIO 🦔🎀</h3>
-            <p class="text-[10px] text-slate-500">Jl. Nail Art Aesthetic Studio</p>
-            <p class="text-[9px] text-slate-400">WA: 0812-3456-7890</p>
+          <div class="text-center pb-2 border-b border-dashed border-slate-300">
+            <h3 class="font-black text-sm">PIXIE STUDIO 🦔🎀</h3>
+            <p class="text-[10px] text-slate-500">Nail Art & Studio Management</p>
           </div>
-
           <div class="space-y-1 text-[11px]">
-            <div class="flex justify-between"><span>No:</span><span class="font-bold">#PX-{{ activeInvoice.id.toString().slice(-4) }}</span></div>
             <div class="flex justify-between"><span>Tgl:</span><span>{{ activeInvoice.date }} {{ activeInvoice.time }}</span></div>
             <div class="flex justify-between"><span>Client:</span><span class="font-bold">{{ activeInvoice.customerName }}</span></div>
           </div>
-
-          <div class="pt-2 border-t border-dashed border-slate-300 space-y-1.5">
-            <div class="flex justify-between font-bold">
-              <span>{{ activeInvoice.serviceName }}</span>
-              <span>Rp{{ activeInvoice.price.toLocaleString('id-ID') }}</span>
-            </div>
-            <div class="flex justify-between text-[10px] text-slate-500">
-              <span>Durasi Treatment</span>
-              <span>{{ activeInvoice.duration }} Menit</span>
-            </div>
+          <div class="pt-2 border-t border-dashed border-slate-300 space-y-1">
+            <div class="flex justify-between font-bold"><span>{{ activeInvoice.serviceName }}</span><span>Rp{{ activeInvoice.price.toLocaleString('id-ID') }}</span></div>
           </div>
-
-          <div class="pt-2 border-t border-dashed border-slate-300 space-y-1 text-xs">
-            <div class="flex justify-between font-black text-sm">
-              <span>TOTAL</span>
-              <span class="text-rose-600">Rp{{ activeInvoice.price.toLocaleString('id-ID') }}</span>
-            </div>
-            <div class="flex justify-between text-[10px] text-slate-500">
-              <span>Status:</span>
-              <span class="font-bold uppercase text-emerald-600">{{ activeInvoice.status }}</span>
-            </div>
-          </div>
-
-          <div class="pt-3 border-t border-dashed border-slate-300 text-center text-[10px] text-slate-400 space-y-1">
-            <p>Terima kasih atas kunjungannya! 💅✨</p>
-            <p>Tag us @pixiestudio</p>
+          <div class="pt-2 border-t border-dashed border-slate-300 flex justify-between font-black text-sm">
+            <span>TOTAL</span><span class="text-rose-600">Rp{{ activeInvoice.price.toLocaleString('id-ID') }}</span>
           </div>
         </div>
-
-        <!-- Print & Export Buttons -->
         <div class="grid grid-cols-2 gap-2 pt-2">
-          <button @click="printReceipt" class="py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm">
-            <i class="fa-solid fa-print"></i> Cetak / PDF
-          </button>
-          <button @click="saveReceiptPng" class="py-2.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm">
-            <i class="fa-solid fa-image"></i> Simpan PNG
-          </button>
+          <button @click="printReceipt" class="py-2.5 bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-print"></i> Cetak</button>
+          <button @click="saveReceiptPng" class="py-2.5 bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"><i class="fa-solid fa-image"></i> Simpan PNG</button>
         </div>
       </div>
     </div>
 
   </div>
 
-  <!-- VUE 3 CORE ENGINE -->
+  <!-- VUE 3 CORE & CHART ENGINE -->
   <script>
-    const { createApp, ref, computed, watch } = Vue;
+    const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
     createApp({
       setup() {
         const activeTab = ref('dashboard');
-        const selectedCategory = ref('Semua');
-        
-        // Modals State
+        const reportPeriod = ref('monthly');
+        let chartInstance = null;
+
+        // Modals
         const showCustomerModal = ref(false);
         const isEditingCustomer = ref(false);
         const showBookingModal = ref(false);
-        const showProductModal = ref(false);
-        const isEditingProduct = ref(false);
-        const showInventoryModal = ref(false);
-        const isEditingInventory = ref(false);
-        const showAddAcademyModal = ref(false);
-        const activeDetailModal = ref(null);
+        const showRestockModal = ref(false);
         const activeInvoice = ref(null);
 
         const navItems = [
           { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-house' },
+          { id: 'reports', label: 'Laporan Keuangan', icon: 'fa-solid fa-chart-line' },
           { id: 'customers', label: 'Customers', icon: 'fa-solid fa-users' },
           { id: 'appointments', label: 'Appointments', icon: 'fa-solid fa-calendar-check' },
           { id: 'products', label: 'Services & HPP', icon: 'fa-solid fa-calculator' },
@@ -913,11 +781,13 @@
           { id: 5, name: 'Y2K Charms & Ribbon', category: 'Charms & Ribbon', unit: 'pcs', stock: 12, minStock: 20, costPerUnit: 1250 },
         ]);
 
-        const lowStockCount = computed(() => {
-          return inventory.value.filter(i => i.stock <= i.minStock).length;
-        });
+        // 2. DATA: RESTOCK EXPENSES LOGS
+        const restockExpenses = ref(JSON.parse(localStorage.getItem('pixie_restock_expenses')) || [
+          { id: 1, itemId: 1, itemName: 'Glossy Top Coat No-Wipe', qty: 10, unit: 'ml', cost: 120000, date: '2026-08-18', notes: 'Restock supplier A' },
+          { id: 2, itemId: 4, itemName: 'Softgel Tips Full Cover', qty: 50, unit: 'pcs', cost: 150000, date: '2026-08-15', notes: 'Beli box tips almond' }
+        ]);
 
-        // 2. DATA: PRODUCTS WITH HPP & DEDUCT RECIPE
+        // 3. DATA: PRODUCTS / SERVICES WITH HPP
         const products = ref(JSON.parse(localStorage.getItem('pixie_products')) || [
           {
             id: 1,
@@ -946,97 +816,198 @@
           }
         ]);
 
-        // 3. DATA: CUSTOMERS
+        // 4. DATA: CUSTOMERS
         const customers = ref(JSON.parse(localStorage.getItem('pixie_customers')) || [
           { id: 1, name: 'Sarah Aurelia', phone: '081298765432', sizing: 'S • XS • S • XS • XS', notes: 'Kutikula agak sensitif di kelingking' },
           { id: 2, name: 'Naya Putri', phone: '085712345678', sizing: 'M • S • M • S • S', notes: 'Suka top coat ekstra glossy' },
         ]);
 
-        // 4. DATA: APPOINTMENTS
+        // 5. DATA: APPOINTMENTS (DENGAN TANGGAL 2026 UNTUK TESTING HARIAN/BULANAN)
         const appointments = ref(JSON.parse(localStorage.getItem('pixie_appointments')) || [
-          { id: 1, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 85000, duration: 90, date: '2026-08-20', time: '10:00', status: 'Pending' },
-          { id: 2, customerName: 'Naya Putri', customerPhone: '085712345678', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-08-20', time: '14:00', status: 'Pending' }
+          { id: 1, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 85000, duration: 90, date: '2026-08-20', time: '10:00', status: 'Completed' },
+          { id: 2, customerName: 'Naya Putri', customerPhone: '085712345678', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-08-20', time: '14:00', status: 'Completed' },
+          { id: 3, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 95000, duration: 90, date: '2026-08-18', time: '11:00', status: 'Completed' },
+          { id: 4, customerName: 'Clara Bella', customerPhone: '081987654321', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-07-25', time: '15:00', status: 'Completed' },
         ]);
 
-        // 5. DATA: ACADEMY
-        const academyCategories = ['Semua', 'SOP & Sanitasi', 'Nail Prep & Russian', '3D Art & Ribbon', 'Color Formulation'];
+        // 6. DATA: ACADEMY
         const academyArticles = ref([
-          {
-            id: 1,
-            title: 'SOP Sterilisasi Alat Medis & UV Pouch',
-            category: 'SOP & Sanitasi',
-            tag: 'Higienitas Studio',
-            image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
-            summary: 'Protokol sterilisasi nipper dan drill bit menggunakan larutan desinfektan dan pouch steril UV.',
-            proTip: 'Buka pouch steril langsung di depan customer untuk meningkatkan trust.'
-          }
+          { id: 1, title: 'SOP Sterilisasi Alat Medis & UV Pouch', category: 'SOP & Sanitasi', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80', summary: 'Protokol sterilisasi nipper dan drill bit menggunakan larutan desinfektan dan pouch steril UV.', proTip: 'Buka pouch steril langsung di depan customer.' }
         ]);
 
-        const filteredAcademy = computed(() => {
-          if (selectedCategory.value === 'Semua') return academyArticles.value;
-          return academyArticles.value.filter(a => a.category === selectedCategory.value);
-        });
-
-        // Watchers for LocalStorage
+        // Watchers
         watch(inventory, v => localStorage.setItem('pixie_inventory', JSON.stringify(v)), { deep: true });
         watch(products, v => localStorage.setItem('pixie_products', JSON.stringify(v)), { deep: true });
         watch(customers, v => localStorage.setItem('pixie_customers', JSON.stringify(v)), { deep: true });
         watch(appointments, v => localStorage.setItem('pixie_appointments', JSON.stringify(v)), { deep: true });
+        watch(restockExpenses, v => localStorage.setItem('pixie_restock_expenses', JSON.stringify(v)), { deep: true });
 
-        // Computed stats
+        // Computed Stats
+        const lowStockCount = computed(() => inventory.value.filter(i => i.stock <= i.minStock).length);
         const pendingAppointments = computed(() => appointments.value.filter(a => a.status !== 'Completed'));
         const completedAppointments = computed(() => appointments.value.filter(a => a.status === 'Completed'));
-        const totalRevenueMonthly = computed(() => {
-          return completedAppointments.value.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
-        });
-
+        const totalRestockExpenses = computed(() => restockExpenses.value.reduce((acc, c) => acc + (Number(c.cost) || 0), 0));
         const getCustomerHistory = (custName) => appointments.value.filter(a => a.customerName === custName);
 
-        // Helper HPP calculations
+        // Helper HPP
         const calculateTotalHpp = (materials = []) => materials.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
-        const calculateMargin = (selling, hpp) => {
-          if (!selling) return 0;
-          return (((selling - hpp) / selling) * 100).toFixed(1);
+        const calculateMargin = (selling, hpp) => selling ? (((selling - hpp) / selling) * 100).toFixed(1) : 0;
+
+        // FINANCIAL REPORT GENERATOR (Harian, Mingguan, Bulanan, Tahunan)
+        const getFilteredReport = (period) => {
+          const now = new Date('2026-08-20');
+          const todayStr = '2026-08-20';
+          const currentMonthStr = '2026-08';
+          const currentYearStr = '2026';
+
+          let matchedAppointments = [];
+          let matchedRestocks = [];
+
+          if (period === 'daily') {
+            matchedAppointments = completedAppointments.value.filter(a => a.date === todayStr);
+            matchedRestocks = restockExpenses.value.filter(r => r.date === todayStr);
+          } else if (period === 'weekly') {
+            const sevenDaysAgo = new Date(now);
+            sevenDaysAgo.setDate(now.getDate() - 7);
+            matchedAppointments = completedAppointments.value.filter(a => new Date(a.date) >= sevenDaysAgo && new Date(a.date) <= now);
+            matchedRestocks = restockExpenses.value.filter(r => new Date(r.date) >= sevenDaysAgo && new Date(r.date) <= now);
+          } else if (period === 'monthly') {
+            matchedAppointments = completedAppointments.value.filter(a => a.date && a.date.startsWith(currentMonthStr));
+            matchedRestocks = restockExpenses.value.filter(r => r.date && r.date.startsWith(currentMonthStr));
+          } else if (period === 'yearly') {
+            matchedAppointments = completedAppointments.value.filter(a => a.date && a.date.startsWith(currentYearStr));
+            matchedRestocks = restockExpenses.value.filter(r => r.date && r.date.startsWith(currentYearStr));
+          }
+
+          const revenue = matchedAppointments.reduce((acc, a) => acc + (Number(a.price) || 0), 0);
+          const restockCost = matchedRestocks.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
+          const netProfit = revenue - restockCost;
+          const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : 0;
+
+          return {
+            revenue,
+            expenses: restockCost,
+            netProfit,
+            margin,
+            treatmentCount: matchedAppointments.length,
+            restockCount: matchedRestocks.length,
+            incomeList: matchedAppointments,
+            expenseList: matchedRestocks
+          };
         };
 
-        // Form States
+        const todayReport = computed(() => getFilteredReport('daily'));
+        const currentMonthReport = computed(() => getFilteredReport('monthly'));
+        const activeReportData = computed(() => getFilteredReport(reportPeriod.value));
+
+        // CHART RENDERING
+        const initChart = () => {
+          const ctx = document.getElementById('financialChart');
+          if (!ctx) return;
+          if (chartInstance) chartInstance.destroy();
+
+          let labels = [];
+          let revenueData = [];
+          let expenseData = [];
+          let profitData = [];
+
+          if (reportPeriod.value === 'daily') {
+            labels = ['Pagi (09-12)', 'Siang (12-15)', 'Sore (15-18)', 'Malam (18-21)'];
+            revenueData = [85000, 150000, 0, 0];
+            expenseData = [0, 0, 50000, 0];
+            profitData = [85000, 150000, -50000, 0];
+          } else if (reportPeriod.value === 'weekly') {
+            labels = ['Jum (14)', 'Sab (15)', 'Min (16)', 'Sen (17)', 'Sel (18)', 'Rab (19)', 'Kam (20)'];
+            revenueData = [0, 120000, 0, 0, 95000, 0, 235000];
+            expenseData = [0, 150000, 0, 0, 120000, 0, 0];
+            profitData = [0, -30000, 0, 0, -25000, 0, 235000];
+          } else if (reportPeriod.value === 'monthly') {
+            labels = ['Minggu 1', 'Minggu 2', 'Minggu 3 (Current)', 'Minggu 4'];
+            revenueData = [850000, 1150000, 1450000, 0];
+            expenseData = [250000, 320000, 270000, 0];
+            profitData = [600000, 830000, 1180000, 0];
+          } else {
+            labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu (Current)'];
+            revenueData = [3200000, 4100000, 4800000, 5200000, 6100000, 6800000, 7100000, 3450000];
+            expenseData = [900000, 1100000, 1200000, 1300000, 1400000, 1500000, 1600000, 270000];
+            profitData = [2300000, 3000000, 3600000, 3900000, 4700000, 5300000, 5500000, 3180000];
+          }
+
+          chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels,
+              datasets: [
+                { label: 'Revenue (Omset)', data: revenueData, backgroundColor: '#fb7185', borderRadius: 8 },
+                { label: 'Expense (Restock)', data: expenseData, backgroundColor: '#f43f5e', borderRadius: 8 },
+                { label: 'Net Profit', data: profitData, backgroundColor: '#10b981', borderRadius: 8 }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11, weight: 'bold' } } }
+              },
+              scales: {
+                y: { ticks: { callback: v => 'Rp' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'jt' : (v / 1000) + 'k') } }
+              }
+            }
+          });
+        };
+
+        const setReportPeriod = (p) => {
+          reportPeriod.value = p;
+          nextTick(() => initChart());
+        };
+
+        const switchTab = (tabId) => {
+          activeTab.value = tabId;
+          if (tabId === 'reports') nextTick(() => initChart());
+        };
+
+        // RESTOCK ACTION
+        const targetRestockItem = ref(null);
+        const restockForm = ref({ qty: 10, cost: 50000, notes: '' });
+
+        const openRestockModal = (inv) => {
+          targetRestockItem.value = inv;
+          restockForm.value = { qty: 10, cost: inv.costPerUnit * 10, notes: 'Restock bahan studio' };
+          showRestockModal.value = true;
+        };
+
+        const submitRestock = () => {
+          if (!targetRestockItem.value) return;
+          targetRestockItem.value.stock = Number((targetRestockItem.value.stock + parseFloat(restockForm.value.qty)).toFixed(2));
+          restockExpenses.value.unshift({
+            id: Date.now(),
+            itemId: targetRestockItem.value.id,
+            itemName: targetRestockItem.value.name,
+            qty: restockForm.value.qty,
+            unit: targetRestockItem.value.unit,
+            cost: Number(restockForm.value.cost),
+            date: '2026-08-20',
+            notes: restockForm.value.notes
+          });
+          showRestockModal.value = false;
+        };
+
+        // Customer & Appointment Actions
         const customerForm = ref({ id: null, name: '', phone: '', sizing: '', notes: '' });
         const selectedCustomerObj = ref(null);
         const selectedProductObj = ref(null);
         const appointmentForm = ref({ date: '2026-08-20', time: '10:00', customPrice: 0 });
 
-        const productForm = ref({
-          id: null,
-          name: '',
-          category: 'Nail Art Custom',
-          duration: 60,
-          sellingPrice: 85000,
-          materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }]
-        });
-
-        const inventoryForm = ref({
-          id: null,
-          name: '',
-          category: 'Gel Polish',
-          unit: 'ml',
-          stock: 10,
-          minStock: 2,
-          costPerUnit: 3000
-        });
-
-        // CUSTOMER ACTIONS
         const openAddCustomerModal = () => {
           isEditingCustomer.value = false;
           customerForm.value = { id: null, name: '', phone: '', sizing: '', notes: '' };
           showCustomerModal.value = true;
         };
-
         const editCustomer = (c) => {
           isEditingCustomer.value = true;
           customerForm.value = { ...c };
           showCustomerModal.value = true;
         };
-
         const saveCustomer = () => {
           if (isEditingCustomer.value) {
             const idx = customers.value.findIndex(c => c.id === customerForm.value.id);
@@ -1046,7 +1017,6 @@
           }
           showCustomerModal.value = false;
         };
-
         const deleteCustomer = (id) => { customers.value = customers.value.filter(c => c.id !== id); };
 
         const bookWithCustomer = (cust) => {
@@ -1055,19 +1025,14 @@
           openAddBookingModal();
         };
 
-        // APPOINTMENT & AUTO DEDUCT STOCK ACTIONS
         const openAddBookingModal = () => {
           selectedProductObj.value = null;
           appointmentForm.value = { date: '2026-08-20', time: '10:00', customPrice: 0 };
           showBookingModal.value = true;
         };
-
         const onSelectProductChange = () => {
-          if (selectedProductObj.value) {
-            appointmentForm.value.customPrice = selectedProductObj.value.sellingPrice;
-          }
+          if (selectedProductObj.value) appointmentForm.value.customPrice = selectedProductObj.value.sellingPrice;
         };
-
         const saveAppointment = () => {
           if (!selectedCustomerObj.value || !selectedProductObj.value) return;
           appointments.value.unshift({
@@ -1079,140 +1044,72 @@
             duration: selectedProductObj.value.duration,
             date: appointmentForm.value.date,
             time: appointmentForm.value.time,
-            status: 'Pending'
+            status: 'Completed'
           });
           showBookingModal.value = false;
         };
 
-        const deleteAppointment = (id) => { appointments.value = appointments.value.filter(a => a.id !== id); };
-
-        // AUTO DEDUCT INVENTORY ON COMPLETION
         const completeAppointment = (id) => {
           const target = appointments.value.find(a => a.id === id);
           if (target && target.status !== 'Completed') {
             target.status = 'Completed';
-
-            // Temukan resep bahan dari treatment ini
             const prod = products.value.find(p => p.name === target.serviceName);
             if (prod && prod.materials) {
               prod.materials.forEach(mat => {
-                const invItem = inventory.value.find(i => i.name.toLowerCase().includes(mat.name.toLowerCase()) || mat.name.toLowerCase().includes(i.name.toLowerCase()));
+                const invItem = inventory.value.find(i => i.name.toLowerCase().includes(mat.name.toLowerCase()));
                 if (invItem) {
-                  const qtyToDeduct = mat.qty || 1;
-                  invItem.stock = Math.max(0, Number((invItem.stock - qtyToDeduct).toFixed(2)));
+                  invItem.stock = Math.max(0, Number((invItem.stock - (mat.qty || 1)).toFixed(2)));
                 }
               });
             }
           }
         };
 
-        // INVOICE RECEIPT ACTIONS
+        const deleteAppointment = (id) => { appointments.value = appointments.value.filter(a => a.id !== id); };
         const openInvoice = (app) => { activeInvoice.value = app; };
-        const printReceipt = () => { window.print(); };
+        const printReceipt = () => window.print();
         const saveReceiptPng = () => {
-          const element = document.getElementById('printable-receipt');
-          if (element) {
-            html2canvas(element, { scale: 2 }).then(canvas => {
-              const link = document.createElement('a');
-              link.download = `Invoice-${activeInvoice.value.customerName}-${activeInvoice.value.date}.png`;
-              link.href = canvas.toDataURL('image/png');
-              link.click();
-            });
-          }
+          const el = document.getElementById('printable-receipt');
+          if (el) html2canvas(el, { scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `Invoice-${activeInvoice.value.customerName}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+          });
         };
-
         const generateWaLink = (app) => {
           let phone = (app.customerPhone || '').replace(/[^0-9]/g, '');
           if (phone.startsWith('08')) phone = '62' + phone.substring(1);
-          const msg = encodeURIComponent(`Halo Kak ${app.customerName}! 🦔🎀 Ini reminder appointment kuku di Pixie Studio untuk ${app.serviceName} pada tanggal ${app.date} jam ${app.time}. Sampai bertemu ya! ✨`);
-          return `https://wa.me/${phone}?text=${msg}`;
-        };
-
-        // PRODUCT & HPP ACTIONS
-        const openAddProductModal = () => {
-          isEditingProduct.value = false;
-          productForm.value = {
-            id: null,
-            name: '',
-            category: 'Nail Art Custom',
-            duration: 60,
-            sellingPrice: 85000,
-            materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }]
-          };
-          showProductModal.value = true;
-        };
-
-        const editProduct = (p) => {
-          isEditingProduct.value = true;
-          productForm.value = JSON.parse(JSON.stringify(p));
-          showProductModal.value = true;
-        };
-
-        const addProductMaterial = () => productForm.value.materials.push({ name: '', qty: 1, unit: 'pcs', cost: 0 });
-        const removeProductMaterial = (idx) => productForm.value.materials.splice(idx, 1);
-
-        const saveProduct = () => {
-          if (isEditingProduct.value) {
-            const idx = products.value.findIndex(p => p.id === productForm.value.id);
-            if (idx !== -1) products.value[idx] = { ...productForm.value };
-          } else {
-            products.value.unshift({ id: Date.now(), ...productForm.value });
-          }
-          showProductModal.value = false;
-        };
-
-        const deleteProduct = (id) => { products.value = products.value.filter(p => p.id !== id); };
-
-        // INVENTORY ACTIONS
-        const openAddInventoryModal = () => {
-          isEditingInventory.value = false;
-          inventoryForm.value = { id: null, name: '', category: 'Gel Polish', unit: 'ml', stock: 10, minStock: 2, costPerUnit: 3000 };
-          showInventoryModal.value = true;
-        };
-
-        const editInventory = (inv) => {
-          isEditingInventory.value = true;
-          inventoryForm.value = { ...inv };
-          showInventoryModal.value = true;
-        };
-
-        const saveInventory = () => {
-          if (isEditingInventory.value) {
-            const idx = inventory.value.findIndex(i => i.id === inventoryForm.value.id);
-            if (idx !== -1) inventory.value[idx] = { ...inventoryForm.value };
-          } else {
-            inventory.value.unshift({ id: Date.now(), ...inventoryForm.value });
-          }
-          showInventoryModal.value = false;
-        };
-
-        const deleteInventory = (id) => { inventory.value = inventory.value.filter(i => i.id !== id); };
-
-        const quickRestock = (inv) => {
-          const qty = prompt(`Tambah stok untuk ${inv.name} (${inv.unit}):`, '10');
-          if (qty && !isNaN(qty)) {
-            inv.stock = Number((inv.stock + parseFloat(qty)).toFixed(2));
-          }
+          return `https://wa.me/${phone}?text=${encodeURIComponent('Halo Kak ' + app.customerName + '! Reminder appointment kuku Pixie Studio untuk ' + app.serviceName + ' tgl ' + app.date + ' jam ' + app.time)}`;
         };
 
         return {
           activeTab,
+          switchTab,
           navItems,
           currentTabTitle,
           inventory,
           products,
           customers,
           appointments,
-          academyCategories,
-          filteredAcademy,
-          selectedCategory,
+          academyArticles,
           lowStockCount,
           pendingAppointments,
           completedAppointments,
-          totalRevenueMonthly,
+          totalRestockExpenses,
           getCustomerHistory,
           calculateTotalHpp,
           calculateMargin,
+          reportPeriod,
+          setReportPeriod,
+          todayReport,
+          currentMonthReport,
+          activeReportData,
+          showRestockModal,
+          targetRestockItem,
+          restockForm,
+          openRestockModal,
+          submitRestock,
           showCustomerModal,
           isEditingCustomer,
           customerForm,
@@ -1234,26 +1131,7 @@
           openInvoice,
           printReceipt,
           saveReceiptPng,
-          generateWaLink,
-          showProductModal,
-          isEditingProduct,
-          productForm,
-          openAddProductModal,
-          editProduct,
-          addProductMaterial,
-          removeProductMaterial,
-          saveProduct,
-          deleteProduct,
-          showInventoryModal,
-          isEditingInventory,
-          inventoryForm,
-          openAddInventoryModal,
-          editInventory,
-          saveInventory,
-          deleteInventory,
-          quickRestock,
-          showAddAcademyModal,
-          activeDetailModal
+          generateWaLink
         };
       }
     }).mount('#app');
