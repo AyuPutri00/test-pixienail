@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Pixie Studio Manager 🦔🎀</title>
   
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Font Awesome 6 Icons -->
@@ -15,28 +13,17 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- html2canvas untuk Save Invoice to PNG -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <!-- Vue 3 CDN -->
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 
   <script>
     const SUPABASE_URL = 'https://njzrahutipfremnofydv.supabase.co';
-    const SUPABASE_ANON_KEY = 'GnUW51eBM1sLiySX'; // Anon Key Kamu
+    const SUPABASE_ANON_KEY = 'sb_publishable_C_B0Q4CfjFGOEXkBr0XGVA_WhwXYkj5';
+    
+    // Inisialisasi Supabase Client
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    // Contoh Fetch Data saat Web dibuka:
-    const fetchInitialData = async () => {
-      const { data: custData } = await supabase.from('customers').select('*').order('id', { ascending: false });
-      if (custData) customers.value = custData;
-    
-      const { data: invData } = await supabase.from('inventory').select('*').order('id', { ascending: false });
-      if (invData) inventory.value = invData;
-    
-      const { data: appData } = await supabase.from('appointments').select('*').order('id', { ascending: false });
-      if (appData) appointments.value = appData;
-    };
-    
-    // Panggil di onMounted(() => { fetchInitialData(); });
-    
     tailwind.config = {
       theme: {
         extend: {
@@ -80,7 +67,7 @@
           </div>
           <div>
             <h1 class="font-black text-lg text-slate-800 tracking-tight leading-none">Pixie Studio</h1>
-            <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider">Manager & Finance</span>
+            <span class="text-[10px] text-rose-400 font-bold uppercase tracking-wider">Manager & Cloud DB</span>
           </div>
         </div>
 
@@ -101,14 +88,24 @@
         </nav>
       </div>
 
-      <!-- User Profile Widget -->
-      <div class="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-          AY
-        </div>
-        <div class="text-xs truncate">
-          <p class="font-bold text-slate-800">Ayu 🎀</p>
-          <p class="text-slate-400">Head Nailist</p>
+      <!-- DB Status & Profile Widget -->
+      <div class="space-y-2">
+        <button @click="showDbConfigModal = true" class="w-full p-2.5 bg-slate-50 hover:bg-rose-50 border border-slate-200/80 rounded-2xl flex items-center justify-between text-xs text-slate-600 transition-all">
+          <span class="flex items-center gap-2 font-semibold">
+            <span class="w-2 h-2 rounded-full" :class="isDbConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'"></span>
+            <span>{{ isDbConnected ? 'Cloud DB Aktif' : 'Atur Supabase' }}</span>
+          </span>
+          <i class="fa-solid fa-gear text-slate-400"></i>
+        </button>
+
+        <div class="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            AY
+          </div>
+          <div class="text-xs truncate">
+            <p class="font-bold text-slate-800">Ayu 🎀</p>
+            <p class="text-slate-400">Head Nailist</p>
+          </div>
         </div>
       </div>
     </aside>
@@ -119,9 +116,14 @@
         <div class="w-8 h-8 rounded-xl bg-rose-500 flex items-center justify-center text-white text-sm">🦔</div>
         <span class="font-black text-slate-800 text-sm">Pixie Studio</span>
       </div>
-      <span class="text-[11px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100">
-        {{ currentTabTitle }}
-      </span>
+      <div class="flex items-center gap-2">
+        <button @click="showDbConfigModal = true" class="p-1.5 bg-rose-50 text-rose-600 rounded-lg text-xs">
+          <i class="fa-solid fa-database"></i>
+        </button>
+        <span class="text-[11px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg border border-rose-100">
+          {{ currentTabTitle }}
+        </span>
+      </div>
     </header>
 
     <!-- MAIN CONTENT AREA -->
@@ -135,7 +137,7 @@
           </div>
           <div>
             <h4 class="font-bold text-slate-800 text-xs sm:text-sm">Peringatan Stok Rendah ({{ lowStockCount }} Bahan)</h4>
-            <p class="text-[11px] text-amber-800">Bahan telah mencapai batas minimum. Buka tab inventaris untuk restock!</p>
+            <p class="text-[11px] text-amber-800">Beberapa material telah mencapai batas minimum. Buka tab inventaris untuk restock!</p>
           </div>
         </div>
         <button @click="switchTab('inventory')" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-xs shrink-0">
@@ -149,11 +151,11 @@
           <div>
             <span class="bg-white/20 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">Live Overview</span>
             <h2 class="text-2xl sm:text-3xl font-black mt-2">Good evening, Ayu! 🦔🎀</h2>
-            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & total omset bulan ini Rp{{ currentMonthReport.revenue.toLocaleString('id-ID') }}.</p>
+            <p class="text-rose-100 text-xs sm:text-sm mt-1">Kamu punya {{ pendingAppointments.length }} jadwal pending & total omset terdata Rp{{ allTimeRevenue.toLocaleString('id-ID') }}.</p>
           </div>
           <div class="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/20 text-left md:text-right w-full md:w-auto">
-            <div class="text-[10px] text-rose-100 uppercase font-semibold">Net Profit Bulan Ini</div>
-            <div class="text-2xl font-black mt-0.5">Rp{{ currentMonthReport.netProfit.toLocaleString('id-ID') }}</div>
+            <div class="text-[10px] text-rose-100 uppercase font-semibold">Total Omset Treatment Selesai</div>
+            <div class="text-2xl font-black mt-0.5">Rp{{ allTimeRevenue.toLocaleString('id-ID') }}</div>
             <div class="text-[10px] text-emerald-200 font-bold">✨ Dari {{ completedAppointments.length }} Treatment Selesai</div>
           </div>
         </div>
@@ -180,8 +182,8 @@
             <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-sm sm:text-base mb-2">
               <i class="fa-solid fa-coins"></i>
             </div>
-            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Omset Hari Ini</div>
-            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">Rp{{ todayReport.revenue.toLocaleString('id-ID') }}</div>
+            <div class="text-[10px] sm:text-xs text-slate-400 font-semibold">Total Customer</div>
+            <div class="text-base sm:text-xl font-bold text-slate-800 mt-0.5">{{ customers.length }} Orang</div>
           </div>
 
           <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-100 shadow-xs">
@@ -236,60 +238,149 @@
               </div>
               <p><strong class="text-slate-700">WhatsApp:</strong> {{ customers[0].phone }}</p>
               <p><strong class="text-slate-700">Sizing Press-On:</strong> {{ customers[0].sizing || '-' }}</p>
-              <p><strong class="text-slate-700">Catatan Khusus:</strong> {{ customers[0].notes || 'Tidak ada catatan khusus' }}</p>
+              <p><strong class="text-slate-700">Catatan:</strong> {{ customers[0].notes || 'Tidak ada catatan khusus' }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 2. TAB: LAPORAN KEUANGAN & GRAFIK -->
+      <!-- 2. TAB: LAPORAN KEUANGAN & GRAFIK (FILTER FLEKSIBEL: TANGGAL, BULAN, TAHUN, RANGE) -->
       <div v-if="activeTab === 'reports'" class="space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
-          <div>
-            <h2 class="text-base sm:text-lg font-bold text-slate-800">📊 Laporan Keuangan & Analisis Laba</h2>
-            <p class="text-xs text-slate-400">Kompilasi otomatis omset dari appointment selesai vs pengeluaran restock & HPP.</p>
+        <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold text-slate-800">📊 Laporan Keuangan & Analisis Laba</h2>
+              <p class="text-xs text-slate-400">Kalkulasi riil pemasukan appointment selesai vs biaya restock bahan.</p>
+            </div>
+            
+            <!-- Filter Type Selector -->
+            <div class="flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
+              <button 
+                v-for="mode in ['daily', 'monthly', 'yearly', 'custom']" 
+                :key="mode"
+                @click="setFilterMode(mode)"
+                :class="reportFilterMode === mode ? 'bg-white text-rose-600 font-bold shadow-xs' : 'text-slate-500 font-medium'"
+                class="px-3 py-1.5 rounded-xl text-xs capitalize transition-all whitespace-nowrap">
+                {{ mode === 'daily' ? 'Harian' : mode === 'monthly' ? 'Bulanan' : mode === 'yearly' ? 'Tahunan' : 'Rentang Tanggal' }}
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
-            <button 
-              v-for="period in ['daily', 'weekly', 'monthly', 'yearly']" 
-              :key="period"
-              @click="setReportPeriod(period)"
-              :class="reportPeriod === period ? 'bg-white text-rose-600 font-bold shadow-xs' : 'text-slate-500 font-medium'"
-              class="px-3.5 py-1.5 rounded-xl text-xs capitalize transition-all whitespace-nowrap">
-              {{ period === 'daily' ? 'Harian' : period === 'weekly' ? 'Mingguan' : period === 'monthly' ? 'Bulanan' : 'Tahunan' }}
-            </button>
+
+          <!-- Date Filter Controls -->
+          <div class="p-3.5 bg-rose-50/50 border border-rose-100 rounded-2xl flex flex-wrap items-center gap-3 text-xs">
+            <span class="font-bold text-rose-800 flex items-center gap-1.5">
+              <i class="fa-regular fa-calendar"></i>
+              <span>Pilih Periode:</span>
+            </span>
+
+            <!-- If Daily -->
+            <div v-if="reportFilterMode === 'daily'" class="flex items-center gap-2">
+              <input v-model="filterDailyDate" @change="onDateFilterChanged" type="date" class="p-2 border border-slate-200 rounded-xl bg-white font-bold text-slate-700" />
+            </div>
+
+            <!-- If Monthly -->
+            <div v-if="reportFilterMode === 'monthly'" class="flex items-center gap-2">
+              <input v-model="filterMonthDate" @change="onDateFilterChanged" type="month" class="p-2 border border-slate-200 rounded-xl bg-white font-bold text-slate-700" />
+            </div>
+
+            <!-- If Yearly -->
+            <div v-if="reportFilterMode === 'yearly'" class="flex items-center gap-2">
+              <select v-model="filterYearDate" @change="onDateFilterChanged" class="p-2 border border-slate-200 rounded-xl bg-white font-bold text-slate-700">
+                <option value="2026">Tahun 2026</option>
+                <option value="2025">Tahun 2025</option>
+                <option value="2024">Tahun 2024</option>
+              </select>
+            </div>
+
+            <!-- If Custom Range -->
+            <div v-if="reportFilterMode === 'custom'" class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center gap-1">
+                <span class="text-slate-500">Dari:</span>
+                <input v-model="filterStartDate" @change="onDateFilterChanged" type="date" class="p-2 border border-slate-200 rounded-xl bg-white font-bold text-slate-700" />
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-500">Sampai:</span>
+                <input v-model="filterEndDate" @change="onDateFilterChanged" type="date" class="p-2 border border-slate-200 rounded-xl bg-white font-bold text-slate-700" />
+              </div>
+            </div>
+
+            <span class="ml-auto text-[11px] text-slate-400 italic">Data terupdate otomatis dari database</span>
           </div>
         </div>
 
+        <!-- 3 Financial Summary Cards (100% Calculated) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
             <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
               <span>Gross Revenue (Omset)</span>
-              <span class="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeReportData.treatmentCount }} Selesai</span>
+              <span class="text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeFinancialReport.incomeList.length }} Selesai</span>
             </div>
-            <div class="text-2xl font-black text-slate-800">Rp{{ activeReportData.revenue.toLocaleString('id-ID') }}</div>
+            <div class="text-2xl font-black text-slate-800">Rp{{ activeFinancialReport.revenue.toLocaleString('id-ID') }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Total pembayaran appointment selesai</p>
           </div>
 
           <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
             <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
-              <span>Total Pengeluaran</span>
-              <span class="text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeReportData.restockCount }}x Restock</span>
+              <span>Total Pengeluaran (Restock)</span>
+              <span class="text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md font-bold text-[10px]">{{ activeFinancialReport.expenseList.length }}x Restock</span>
             </div>
-            <div class="text-2xl font-black text-rose-600">Rp{{ activeReportData.expenses.toLocaleString('id-ID') }}</div>
+            <div class="text-2xl font-black text-rose-600">Rp{{ activeFinancialReport.expenses.toLocaleString('id-ID') }}</div>
+            <p class="text-[11px] text-slate-400 mt-1">Biaya pembelian bahan pada periode ini</p>
           </div>
 
           <div class="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
             <div class="flex justify-between items-center text-xs text-slate-400 font-semibold mb-2">
-              <span>Net Profit</span>
-              <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">Margin: {{ activeReportData.margin }}%</span>
+              <span>Net Profit (Laba Bersih)</span>
+              <span class="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md font-bold text-[10px]">Margin: {{ activeFinancialReport.margin }}%</span>
             </div>
-            <div class="text-2xl font-black text-emerald-600">Rp{{ activeReportData.netProfit.toLocaleString('id-ID') }}</div>
+            <div class="text-2xl font-black" :class="activeFinancialReport.netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'">
+              Rp{{ activeFinancialReport.netProfit.toLocaleString('id-ID') }}
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Omset dikurangi seluruh biaya riil</p>
           </div>
         </div>
 
+        <!-- Dynamic Chart Section -->
         <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-bold text-slate-800">📈 Visualisasi Grafik Performa Finansial</h3>
+              <p class="text-[11px] text-slate-400">Grafik bar perbandingan Omset, Biaya Restock, dan Profit riil.</p>
+            </div>
+          </div>
           <div class="relative h-64 sm:h-72 w-full">
             <canvas id="financialChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Income & Expense Tables -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-800 text-sm">💅 Pemasukan Appointment ({{ activeFinancialReport.incomeList.length }})</h3>
+            <div v-if="activeFinancialReport.incomeList.length === 0" class="text-xs text-slate-400 text-center py-6">Tidak ada transaksi pada periode ini.</div>
+            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div v-for="inc in activeFinancialReport.incomeList" :key="inc.id" class="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex justify-between items-center text-xs">
+                <div>
+                  <p class="font-bold text-slate-800">{{ inc.serviceName }}</p>
+                  <p class="text-[10px] text-slate-400">{{ inc.customerName }} • {{ inc.date }} {{ inc.time }}</p>
+                </div>
+                <span class="font-black text-emerald-600">+Rp{{ inc.price.toLocaleString('id-ID') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 class="font-bold text-slate-800 text-sm">📦 Pengeluaran Restock Barang ({{ activeFinancialReport.expenseList.length }})</h3>
+            <div v-if="activeFinancialReport.expenseList.length === 0" class="text-xs text-slate-400 text-center py-6">Tidak ada restock pada periode ini.</div>
+            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div v-for="exp in activeFinancialReport.expenseList" :key="exp.id" class="p-3 bg-rose-50/50 border border-rose-100 rounded-2xl flex justify-between items-center text-xs">
+                <div>
+                  <p class="font-bold text-slate-800">{{ exp.itemName }} (+{{ exp.qty }} {{ exp.unit }})</p>
+                  <p class="text-[10px] text-slate-400">{{ exp.date }} • {{ exp.notes || 'Pembelian stok' }}</p>
+                </div>
+                <span class="font-black text-rose-600">-Rp{{ exp.cost.toLocaleString('id-ID') }}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -315,7 +406,7 @@
               <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2.5">
                   <div class="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold text-sm">
-                    {{ cust.name.substring(0, 2).toUpperCase() }}
+                    {{ cust.name ? cust.name.substring(0, 2).toUpperCase() : 'CU' }}
                   </div>
                   <div>
                     <h3 class="font-bold text-slate-800 text-sm">{{ cust.name }}</h3>
@@ -451,7 +542,7 @@
         </div>
       </div>
 
-      <!-- 5. TAB: SERVICES & HPP -->
+      <!-- 5. TAB: SERVICES & HPP (LENGKAP DENGAN TOMBOL TAMBAH) -->
       <div v-if="activeTab === 'products'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -513,7 +604,7 @@
         </div>
       </div>
 
-      <!-- 6. TAB: INVENTORY & RESTOCK EXPENSE TRACKER (WITH REKAP & HISTORY) -->
+      <!-- 6. TAB: INVENTORY & RESTOCK EXPENSE TRACKER (WITH REKAP & RANGE FILTER) -->
       <div v-if="activeTab === 'inventory'" class="space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs">
           <div>
@@ -579,7 +670,7 @@
           </div>
         </div>
 
-        <!-- SEKSI BARU: HISTORY & REKAP RESTOCK (HARIAN/MINGGUAN/BULANAN/TAHUNAN) -->
+        <!-- REKAP RESTOCK (DENGAN FILTER RENTANG TANGGAL) -->
         <div class="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -589,12 +680,12 @@
             
             <div class="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl overflow-x-auto">
               <button 
-                v-for="p in ['daily', 'weekly', 'monthly', 'yearly']" 
+                v-for="p in ['daily', 'monthly', 'yearly', 'all']" 
                 :key="p"
                 @click="restockFilterPeriod = p"
                 :class="restockFilterPeriod === p ? 'bg-white text-rose-600 font-bold shadow-xs' : 'text-slate-500 font-medium'"
                 class="px-3 py-1.5 rounded-xl text-xs capitalize transition-all whitespace-nowrap">
-                {{ p === 'daily' ? 'Harian' : p === 'weekly' ? 'Mingguan' : p === 'monthly' ? 'Bulanan' : 'Tahunan' }}
+                {{ p === 'daily' ? 'Hari Ini' : p === 'monthly' ? 'Bulan Ini' : p === 'yearly' ? 'Tahun Ini' : 'Semua Data' }}
               </button>
             </div>
           </div>
@@ -610,7 +701,7 @@
               <div class="text-xl font-black text-slate-800">{{ restockSummary.count }} Kali</div>
             </div>
             <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-              <span class="text-[11px] font-bold text-slate-400 uppercase">Total Unit/Bahan Masuk</span>
+              <span class="text-[11px] font-bold text-slate-400 uppercase">Total Unit Masuk</span>
               <div class="text-xl font-black text-slate-800">{{ restockSummary.totalQty }} Item</div>
             </div>
           </div>
@@ -740,16 +831,40 @@
       </button>
     </nav>
 
-    <!-- MODAL 1: RESTOCK BAHAN -->
+    <!-- MODAL DATABASE CONFIGURATION (SUPABASE) -->
+    <div v-if="showDbConfigModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+          <h3 class="text-base font-bold text-slate-800">⚙️ Pengaturan Supabase DB</h3>
+          <button @click="showDbConfigModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Project URL Supabase</label>
+            <input v-model="supabaseConfig.url" type="text" placeholder="https://xxxxxx.supabase.co" class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+          <div>
+            <label class="font-bold text-slate-700 block mb-1">Anon / Public API Key</label>
+            <input v-model="supabaseConfig.key" type="password" placeholder="eyJhbGciOi..." class="w-full p-2.5 border border-slate-200 rounded-xl" />
+          </div>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Data Project URL & Key bisa didapatkan di dashboard Supabase menu <strong>Project Settings > API</strong>.
+          </p>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button @click="showDbConfigModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
+          <button @click="saveSupabaseConfig" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan & Hubungkan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL RESTOCK -->
     <div v-if="showRestockModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
           <h3 class="text-sm font-bold text-slate-800">Restock {{ targetRestockItem?.name }} 📦</h3>
-          <button @click="showRestockModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button @click="showRestockModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
         <form @submit.prevent="submitRestock" class="space-y-3 text-xs">
           <div>
             <label class="font-bold text-slate-700 block mb-1">Jumlah Tambahan ({{ targetRestockItem?.unit }})</label>
@@ -758,13 +873,11 @@
           <div>
             <label class="font-bold text-slate-700 block mb-1">Total Biaya Beli / Restock (Rp)</label>
             <input v-model.number="restockForm.cost" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" />
-            <span class="text-[10px] text-slate-400 mt-0.5 block">*Otomatis masuk ke pos pengeluaran laporan keuangan</span>
           </div>
           <div>
-            <label class="font-bold text-slate-700 block mb-1">Catatan / Supplier (Opsional)</label>
+            <label class="font-bold text-slate-700 block mb-1">Catatan / Supplier</label>
             <input v-model="restockForm.notes" type="text" placeholder="Beli di Supplier A" class="w-full p-2.5 border border-slate-200 rounded-xl" />
           </div>
-
           <div class="flex justify-end gap-2 pt-2">
             <button type="button" @click="showRestockModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
             <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Restock</button>
@@ -773,140 +886,68 @@
       </div>
     </div>
 
-    <!-- MODAL 2: TAMBAH & EDIT INVENTARIS BAHAN BARU -->
+    <!-- MODAL INVENTARIS BAHAN BARU -->
     <div v-if="showInventoryModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
           <h3 class="text-base font-bold text-slate-800">{{ isEditingInventory ? 'Edit Bahan Baku' : 'Tambah Bahan Baru' }} 📦</h3>
-          <button @click="showInventoryModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button @click="showInventoryModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
         <form @submit.prevent="saveInventory" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Nama Bahan</label>
-            <input v-model="inventoryForm.name" type="text" required placeholder="Top Coat Glossy No-Wipe" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-
+          <div><label class="font-bold text-slate-700 block mb-1">Nama Bahan</label><input v-model="inventoryForm.name" type="text" required placeholder="Top Coat Glossy No-Wipe" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
           <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Kategori</label>
-              <select v-model="inventoryForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                <option>Gel Polish</option>
-                <option>Prep & Liquid</option>
-                <option>Charms & Ribbon</option>
-                <option>Extension Tips</option>
-                <option>Hygiene & Steril</option>
-              </select>
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Satuan Unit</label>
-              <input v-model="inventoryForm.unit" type="text" required placeholder="ml / pcs / botol" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
+            <div><label class="font-bold text-slate-700 block mb-1">Kategori</label><select v-model="inventoryForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white"><option>Gel Polish</option><option>Prep & Liquid</option><option>Charms & Ribbon</option><option>Extension Tips</option><option>Hygiene & Steril</option></select></div>
+            <div><label class="font-bold text-slate-700 block mb-1">Satuan Unit</label><input v-model="inventoryForm.unit" type="text" required placeholder="ml / pcs / botol" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
           </div>
-
           <div class="grid grid-cols-3 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Stok Saat Ini</label>
-              <input v-model.number="inventoryForm.stock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold" />
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Batas Minimum</label>
-              <input v-model.number="inventoryForm.minStock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Cost / Unit (Rp)</label>
-              <input v-model.number="inventoryForm.costPerUnit" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
+            <div><label class="font-bold text-slate-700 block mb-1">Stok Saat Ini</label><input v-model.number="inventoryForm.stock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold" /></div>
+            <div><label class="font-bold text-slate-700 block mb-1">Batas Minimum</label><input v-model.number="inventoryForm.minStock" type="number" step="0.1" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+            <div><label class="font-bold text-slate-700 block mb-1">Cost / Unit (Rp)</label><input v-model.number="inventoryForm.costPerUnit" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
           </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showInventoryModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Stok</button>
-          </div>
+          <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showInventoryModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button><button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Stok</button></div>
         </form>
       </div>
     </div>
 
-    <!-- MODAL 3: TAMBAH & EDIT TREATMENT / HPP -->
+    <!-- MODAL TREATMENT / SERVICES & HPP -->
     <div v-if="showProductModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
           <h3 class="text-base font-bold text-slate-800">{{ isEditingProduct ? 'Edit Treatment & HPP' : 'Tambah Treatment Baru' }} 🧮</h3>
-          <button @click="showProductModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button @click="showProductModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
         <form @submit.prevent="saveProduct" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Nama Layanan</label>
-            <input v-model="productForm.name" type="text" required placeholder="Gel Nail Art Ribbon 3D" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-
+          <div><label class="font-bold text-slate-700 block mb-1">Nama Layanan</label><input v-model="productForm.name" type="text" required placeholder="Gel Nail Art Ribbon 3D" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
           <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Kategori</label>
-              <select v-model="productForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-                <option>Gel Manicure</option>
-                <option>Nail Art Custom</option>
-                <option>Softgel Extension</option>
-                <option>Press-On Set</option>
-                <option>Care & Removal</option>
-              </select>
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Durasi (Menit)</label>
-              <input v-model.number="productForm.duration" type="number" required placeholder="90" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
+            <div><label class="font-bold text-slate-700 block mb-1">Kategori</label><select v-model="productForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white"><option>Gel Manicure</option><option>Nail Art Custom</option><option>Softgel Extension</option><option>Press-On Set</option><option>Care & Removal</option></select></div>
+            <div><label class="font-bold text-slate-700 block mb-1">Durasi (Menit)</label><input v-model.number="productForm.duration" type="number" required placeholder="90" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
           </div>
-
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Harga Jual Default / Minimum (Rp)</label>
-            <input v-model.number="productForm.sellingPrice" type="number" required placeholder="85000" class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" />
-          </div>
-
-          <!-- Material Builder with qty per usage -->
+          <div><label class="font-bold text-slate-700 block mb-1">Harga Jual Default / Minimum (Rp)</label><input v-model.number="productForm.sellingPrice" type="number" required placeholder="85000" class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" /></div>
+          
           <div class="p-3 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-slate-700 text-[11px] uppercase">Bahan Yang Terpakai:</span>
+              <span class="font-bold text-slate-700 text-[11px] uppercase">Bahan Terpakai:</span>
               <button type="button" @click="addProductMaterial" class="text-rose-500 font-bold hover:underline">+ Tambah Bahan</button>
             </div>
             <div v-for="(m, idx) in productForm.materials" :key="idx" class="flex gap-2 items-center">
               <input v-model="m.name" type="text" placeholder="Bahan" class="p-2 border border-slate-200 rounded-xl flex-1 bg-white" />
-              <input v-model.number="m.qty" type="number" step="0.1" placeholder="Qty" class="p-2 border border-slate-200 rounded-xl w-16 bg-white" title="Jumlah pemakaian" />
+              <input v-model.number="m.qty" type="number" step="0.1" placeholder="Qty" class="p-2 border border-slate-200 rounded-xl w-16 bg-white" />
               <input v-model.number="m.cost" type="number" placeholder="Cost" class="p-2 border border-slate-200 rounded-xl w-20 bg-white" />
-              <button type="button" @click="removeProductMaterial(idx)" class="text-slate-400 hover:text-rose-500 p-1">
-                <i class="fa-solid fa-trash"></i>
-              </button>
+              <button type="button" @click="removeProductMaterial(idx)" class="text-slate-400 hover:text-rose-500 p-1"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
 
           <div class="p-3 bg-rose-50/60 rounded-2xl border border-rose-100 space-y-1 text-xs">
-            <div class="flex justify-between">
-              <span class="text-slate-500">Total HPP Material:</span>
-              <span class="font-bold text-slate-800">Rp{{ calculateTotalHpp(productForm.materials).toLocaleString('id-ID') }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Gross Profit Bersih:</span>
-              <span class="font-bold text-emerald-600">Rp{{ (productForm.sellingPrice - calculateTotalHpp(productForm.materials)).toLocaleString('id-ID') }}</span>
-            </div>
-            <div class="flex justify-between font-bold">
-              <span class="text-rose-600">Margin Keuntungan:</span>
-              <span class="text-rose-600">{{ calculateMargin(productForm.sellingPrice, calculateTotalHpp(productForm.materials)) }}%</span>
-            </div>
+            <div class="flex justify-between"><span class="text-slate-500">Total HPP Material:</span><span class="font-bold text-slate-800">Rp{{ calculateTotalHpp(productForm.materials).toLocaleString('id-ID') }}</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">Gross Profit:</span><span class="font-bold text-emerald-600">Rp{{ (productForm.sellingPrice - calculateTotalHpp(productForm.materials)).toLocaleString('id-ID') }}</span></div>
+            <div class="flex justify-between font-bold"><span class="text-rose-600">Margin:</span><span class="text-rose-600">{{ calculateMargin(productForm.sellingPrice, calculateTotalHpp(productForm.materials)) }}%</span></div>
           </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showProductModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Layanan</button>
-          </div>
+          <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showProductModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button><button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">Simpan Layanan</button></div>
         </form>
       </div>
     </div>
 
-    <!-- MODAL 4: CUSTOMER -->
+    <!-- MODAL CUSTOMER -->
     <div v-if="showCustomerModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -923,7 +964,7 @@
       </div>
     </div>
 
-    <!-- MODAL 5: BOOKING APPOINTMENT -->
+    <!-- MODAL APPOINTMENT -->
     <div v-if="showBookingModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -931,103 +972,39 @@
           <button @click="showBookingModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <form @submit.prevent="saveAppointment" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Customer</label>
-            <select v-model="selectedCustomerObj" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
-              <option :value="null" disabled>-- Pilih Customer --</option>
-              <option v-for="c in customers" :key="c.id" :value="c">{{ c.name }} ({{ c.phone }})</option>
-            </select>
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Treatment</label>
-            <select v-model="selectedProductObj" @change="onSelectProductChange" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
-              <option :value="null" disabled>-- Pilih Treatment --</option>
-              <option v-for="p in products" :key="p.id" :value="p">{{ p.name }} (Rp{{ p.sellingPrice.toLocaleString('id-ID') }})</option>
-            </select>
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Harga Transaksi (Rp)</label>
-            <input v-model.number="appointmentForm.customPrice" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" />
-          </div>
+          <div><label class="font-bold text-slate-700 block mb-1">Customer</label><select v-model="selectedCustomerObj" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required><option :value="null" disabled>-- Pilih Customer --</option><option v-for="c in customers" :key="c.id" :value="c">{{ c.name }} ({{ c.phone }})</option></select></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Treatment</label><select v-model="selectedProductObj" @change="onSelectProductChange" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required><option :value="null" disabled>-- Pilih Treatment --</option><option v-for="p in products" :key="p.id" :value="p">{{ p.name }} (Rp{{ p.sellingPrice.toLocaleString('id-ID') }})</option></select></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Harga Transaksi (Rp)</label><input v-model.number="appointmentForm.customPrice" type="number" required class="w-full p-2.5 border border-slate-200 rounded-xl font-bold text-rose-600" /></div>
           <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Tanggal</label>
-              <input v-model="appointmentForm.date" type="date" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
-            <div>
-              <label class="font-bold text-slate-700 block mb-1">Jam Mulai</label>
-              <input v-model="appointmentForm.time" type="time" required class="w-full p-2.5 border border-slate-200 rounded-xl" />
-            </div>
+            <div><label class="font-bold text-slate-700 block mb-1">Tanggal</label><input v-model="appointmentForm.date" type="date" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+            <div><label class="font-bold text-slate-700 block mb-1">Jam Mulai</label><input v-model="appointmentForm.time" type="time" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
           </div>
-          <div v-if="isEditingAppointment">
-            <label class="font-bold text-slate-700 block mb-1">Status Pengerjaan</label>
-            <select v-model="appointmentForm.status" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white">
-              <option value="Scheduled">Scheduled (Menunggu)</option>
-              <option value="Completed">Completed (Selesai)</option>
-              <option value="Cancelled">Cancelled (Batal)</option>
-            </select>
-          </div>
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showBookingModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">
-              {{ isEditingAppointment ? 'Update Jadwal' : 'Simpan Jadwal' }}
-            </button>
-          </div>
+          <div v-if="isEditingAppointment"><label class="font-bold text-slate-700 block mb-1">Status</label><select v-model="appointmentForm.status" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white"><option value="Scheduled">Scheduled</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select></div>
+          <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showBookingModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button><button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">{{ isEditingAppointment ? 'Update Jadwal' : 'Simpan Jadwal' }}</button></div>
         </form>
       </div>
     </div>
 
-    <!-- MODAL 6: TAMBAH & EDIT ACADEMY / SOP -->
+    <!-- MODAL ACADEMY / SOP -->
     <div v-if="showAcademyModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
           <h3 class="text-base font-bold text-slate-800">{{ isEditingAcademy ? 'Edit Materi & SOP' : 'Tambah Modul Materi Baru' }} 📚</h3>
-          <button @click="showAcademyModal = false" class="text-slate-400 hover:text-slate-600">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button @click="showAcademyModal = false" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
         <form @submit.prevent="saveAcademyModule" class="space-y-3.5 text-xs">
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Judul SOP / Materi</label>
-            <input v-model="academyForm.title" type="text" required placeholder="misal: Sanitasi & Sterilisasi UV Barbicide" class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Kategori Tags</label>
-            <select v-model="academyForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required>
-              <option v-for="cat in academyCategories.filter(c => c !== 'Semua')" :key="cat" :value="cat">
-                {{ cat }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">URL Cover Foto</label>
-            <input v-model="academyForm.image" type="text" placeholder="https://images.unsplash.com/..." class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Ringkasan Materi</label>
-            <textarea v-model="academyForm.summary" rows="2" class="w-full p-2.5 border border-slate-200 rounded-xl" placeholder="Penjelasan penting..."></textarea>
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Langkah Prosedur (Setiap baris = 1 langkah)</label>
-            <textarea v-model="academyStepsRaw" rows="3" class="w-full p-2.5 border border-slate-200 rounded-xl" placeholder="1. Bersihkan alat&#10;2. Rendam disinfektan&#10;3. Keringkan & sterilkan"></textarea>
-          </div>
-          <div>
-            <label class="font-bold text-slate-700 block mb-1">Pro Tip / Peringatan Khusus</label>
-            <input v-model="academyForm.proTip" type="text" placeholder="Tips rahasia pengerjaan..." class="w-full p-2.5 border border-slate-200 rounded-xl" />
-          </div>
-
-          <div class="flex justify-end gap-2 pt-2">
-            <button type="button" @click="showAcademyModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button>
-            <button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">
-              {{ isEditingAcademy ? 'Update Materi' : 'Simpan Modul' }}
-            </button>
-          </div>
+          <div><label class="font-bold text-slate-700 block mb-1">Judul SOP / Materi</label><input v-model="academyForm.title" type="text" required class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Kategori Tags</label><select v-model="academyForm.category" class="w-full p-2.5 border border-slate-200 rounded-xl bg-white" required><option v-for="cat in academyCategories.filter(c => c !== 'Semua')" :key="cat" :value="cat">{{ cat }}</option></select></div>
+          <div><label class="font-bold text-slate-700 block mb-1">URL Cover Foto</label><input v-model="academyForm.image" type="text" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Ringkasan Materi</label><textarea v-model="academyForm.summary" rows="2" class="w-full p-2.5 border border-slate-200 rounded-xl"></textarea></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Langkah Prosedur (1 baris = 1 langkah)</label><textarea v-model="academyStepsRaw" rows="3" class="w-full p-2.5 border border-slate-200 rounded-xl"></textarea></div>
+          <div><label class="font-bold text-slate-700 block mb-1">Pro Tip</label><input v-model="academyForm.proTip" type="text" class="w-full p-2.5 border border-slate-200 rounded-xl" /></div>
+          <div class="flex justify-end gap-2 pt-2"><button type="button" @click="showAcademyModal = false" class="px-4 py-2 font-bold text-slate-400">Batal</button><button type="submit" class="px-5 py-2 bg-rose-500 text-white font-bold rounded-xl shadow-md">{{ isEditingAcademy ? 'Update Materi' : 'Simpan Modul' }}</button></div>
         </form>
       </div>
     </div>
 
-    <!-- MODAL 7: DETAIL BACA SOP -->
+    <!-- MODAL DETAIL BACA SOP -->
     <div v-if="activeDetailModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-start">
@@ -1035,32 +1012,23 @@
             <span class="text-[10px] font-bold bg-rose-50 text-rose-600 px-2.5 py-1 rounded-lg uppercase">{{ activeDetailModal.category }}</span>
             <h3 class="text-lg font-black text-slate-800 mt-2">{{ activeDetailModal.title }}</h3>
           </div>
-          <button @click="activeDetailModal = null" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-            <i class="fa-solid fa-xmark"></i>
-          </button>
+          <button @click="activeDetailModal = null" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><i class="fa-solid fa-xmark"></i></button>
         </div>
-
         <img :src="activeDetailModal.image" class="w-full h-48 object-cover rounded-2xl shadow-xs" />
-
         <div class="space-y-3 text-xs text-slate-600 leading-relaxed">
           <p>{{ activeDetailModal.summary }}</p>
-          
           <div v-if="activeDetailModal.steps && activeDetailModal.steps.length" class="p-4 bg-rose-50/60 rounded-2xl border border-rose-100">
             <h4 class="font-bold text-rose-900 mb-2">📋 Langkah Pengerjaan:</h4>
-            <ol class="list-decimal list-inside space-y-1.5 text-slate-700">
-              <li v-for="(s, i) in activeDetailModal.steps" :key="i">{{ s }}</li>
-            </ol>
+            <ol class="list-decimal list-inside space-y-1.5 text-slate-700"><li v-for="(s, i) in activeDetailModal.steps" :key="i">{{ s }}</li></ol>
           </div>
-
           <div class="p-3.5 bg-amber-50 border border-amber-200/80 rounded-2xl text-amber-900">
-            <span class="font-bold">⚠️ Pro Artist Secret:</span>
-            <p class="text-[11px] mt-0.5">{{ activeDetailModal.proTip }}</p>
+            <span class="font-bold">⚠️ Pro Artist Secret:</span><p class="text-[11px] mt-0.5">{{ activeDetailModal.proTip }}</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- MODAL 8: STRUK INVOICE -->
+    <!-- MODAL STRUK -->
     <div v-if="activeInvoice" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
         <div class="flex justify-between items-center pb-2 border-b border-slate-100">
@@ -1092,19 +1060,45 @@
 
   </div>
 
-  <!-- VUE 3 CORE & CHART ENGINE -->
+  <!-- VUE 3 CORE & SUPABASE INTEGRATION -->
   <script>
-    const { createApp, ref, computed, watch, nextTick } = Vue;
+    const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
     createApp({
       setup() {
         const activeTab = ref('dashboard');
         const selectedCategory = ref('Semua');
-        const reportPeriod = ref('monthly');
-        const restockFilterPeriod = ref('monthly');
         let chartInstance = null;
 
-        // Modals
+        // Supabase Client Config
+        const supabaseConfig = ref({
+          url: localStorage.getItem('pixie_supabase_url') || '',
+          key: localStorage.getItem('pixie_supabase_key') || ''
+        });
+        const isDbConnected = ref(false);
+        const showDbConfigModal = ref(false);
+        let supabaseClient = null;
+
+        const initSupabase = () => {
+          if (supabaseConfig.value.url && supabaseConfig.value.key && window.supabase) {
+            try {
+              supabaseClient = window.supabase.createClient(supabaseConfig.value.url, supabaseConfig.value.key);
+              isDbConnected.value = true;
+            } catch (e) {
+              isDbConnected.value = false;
+            }
+          }
+        };
+
+        const saveSupabaseConfig = async () => {
+          localStorage.setItem('pixie_supabase_url', supabaseConfig.value.url);
+          localStorage.setItem('pixie_supabase_key', supabaseConfig.value.key);
+          initSupabase();
+          showDbConfigModal.value = false;
+          await fetchAllDataFromDB();
+        };
+
+        // Modals State
         const showCustomerModal = ref(false);
         const isEditingCustomer = ref(false);
         const showBookingModal = ref(false);
@@ -1134,7 +1128,7 @@
           return item ? item.label : 'Dashboard';
         });
 
-        // 1. DATA: INVENTORY
+        // 1. DATA REAKTIF
         const inventory = ref(JSON.parse(localStorage.getItem('pixie_inventory')) || [
           { id: 1, name: 'Glossy Top Coat No-Wipe', category: 'Gel Polish', unit: 'ml', stock: 2.4, minStock: 3.0, costPerUnit: 4000 },
           { id: 2, name: 'Base Coat Gel', category: 'Gel Polish', unit: 'ml', stock: 8.5, minStock: 2.0, costPerUnit: 3000 },
@@ -1143,13 +1137,11 @@
           { id: 5, name: 'Y2K Charms & Ribbon', category: 'Charms & Ribbon', unit: 'pcs', stock: 12, minStock: 20, costPerUnit: 1250 },
         ]);
 
-        // 2. DATA: RESTOCK EXPENSES LOGS
         const restockExpenses = ref(JSON.parse(localStorage.getItem('pixie_restock_expenses')) || [
           { id: 1, itemId: 1, itemName: 'Glossy Top Coat No-Wipe', qty: 10, unit: 'ml', cost: 120000, date: '2026-08-18', notes: 'Restock supplier A' },
           { id: 2, itemId: 4, itemName: 'Softgel Tips Full Cover', qty: 50, unit: 'pcs', cost: 150000, date: '2026-08-15', notes: 'Beli box tips almond' }
         ]);
 
-        // 3. DATA: PRODUCTS / SERVICES WITH HPP
         const products = ref(JSON.parse(localStorage.getItem('pixie_products')) || [
           {
             id: 1,
@@ -1178,28 +1170,17 @@
           }
         ]);
 
-        // 4. DATA: CUSTOMERS
         const customers = ref(JSON.parse(localStorage.getItem('pixie_customers')) || [
           { id: 1, name: 'Sarah Aurelia', phone: '081298765432', sizing: 'S • XS • S • XS • XS', notes: 'Kutikula agak sensitif di kelingking' },
           { id: 2, name: 'Naya Putri', phone: '085712345678', sizing: 'M • S • M • S • S', notes: 'Suka top coat ekstra glossy' },
         ]);
 
-        // 5. DATA: APPOINTMENTS
         const appointments = ref(JSON.parse(localStorage.getItem('pixie_appointments')) || [
-          { id: 1, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 85000, duration: 90, date: '2026-08-20', time: '10:00', status: 'Scheduled' },
+          { id: 1, customerName: 'Sarah Aurelia', customerPhone: '081298765432', serviceName: 'Gel Nail Art Custom 🎀', price: 85000, duration: 90, date: '2026-08-20', time: '10:00', status: 'Completed' },
           { id: 2, customerName: 'Naya Putri', customerPhone: '085712345678', serviceName: 'Full Set Softgel Extension', price: 150000, duration: 120, date: '2026-08-20', time: '14:00', status: 'Scheduled' },
         ]);
 
-        // 6. DATA: ACADEMY
-        const academyCategories = [
-          'Semua', 
-          'SOP & Sanitasi', 
-          'Nail Prep & Russian', 
-          '3D Art & Ribbon', 
-          'Color Formulation', 
-          'Press-On Sizing'
-        ];
-
+        const academyCategories = ['Semua', 'SOP & Sanitasi', 'Nail Prep & Russian', '3D Art & Ribbon', 'Color Formulation', 'Press-On Sizing'];
         const academyArticles = ref(JSON.parse(localStorage.getItem('pixie_academy')) || [
           { 
             id: 1, 
@@ -1207,36 +1188,38 @@
             category: 'SOP & Sanitasi', 
             image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80', 
             summary: 'Protokol sterilisasi nipper dan drill bit menggunakan larutan desinfektan dan pouch steril UV.', 
-            steps: [
-              'Cuci bit & clipper dengan sabun enzimatik di bawah air mengalir',
-              'Rendam dalam larutan Barbicide selama 10 menit',
-              'Keringkan menyeluruh dengan tissue steril',
-              'Segel ke dalam pouch dan masukkan ke UV sterilizer'
-            ],
-            proTip: 'Buka pouch steril langsung di depan customer untuk meningkatkan trust.' 
-          },
-          {
-            id: 2,
-            title: 'SOP Dry Russian Manicure Anti-Lifting',
-            category: 'Nail Prep & Russian',
-            image: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=600&q=80',
-            summary: 'Pembersihan kutikula kering menggunakan diamond flame bit 014 agar lempeng kuku bebas minyak alami.',
-            steps: [
-              'Dorong eponychium lembut menggunakan cuticle pusher 45°',
-              'Gunakan flame bit 014 pada 6.000 RPM reverse & forward',
-              'Buffing kuku alami secara ringan dengan buffer grit 180',
-              'Dehidrasi kuku dengan 99% Isopropyl Alcohol lalu oles primer'
-            ],
-            proTip: 'Jangan merendam tangan customer dengan air sebelum aplikasi gel.'
+            steps: ['Cuci alat di air mengalir', 'Rendam larutan Barbicide 10 menit', 'Keringkan dan masukkan UV pouch'],
+            proTip: 'Buka pouch steril langsung di depan customer.' 
           }
         ]);
 
-        const filteredAcademy = computed(() => {
-          if (selectedCategory.value === 'Semua') return academyArticles.value;
-          return academyArticles.value.filter(a => a.category === selectedCategory.value);
-        });
+        // FETCH ALL DATA DARI CLOUD SUPABASE
+        const fetchAllDataFromDB = async () => {
+          if (!supabaseClient) return;
+          try {
+            const { data: custData } = await supabaseClient.from('customers').select('*').order('id', { ascending: false });
+            if (custData && custData.length) customers.value = custData;
 
-        // Watchers
+            const { data: invData } = await supabaseClient.from('inventory').select('*').order('id', { ascending: false });
+            if (invData && invData.length) inventory.value = invData.map(i => ({ ...i, minStock: Number(i.min_stock), costPerUnit: Number(i.cost_per_unit) }));
+
+            const { data: servData } = await supabaseClient.from('services').select('*').order('id', { ascending: false });
+            if (servData && servData.length) products.value = servData.map(s => ({ ...s, sellingPrice: Number(s.selling_price) }));
+
+            const { data: appData } = await supabaseClient.from('appointments').select('*').order('id', { ascending: false });
+            if (appData && appData.length) appointments.value = appData.map(a => ({ ...a, customerName: a.customer_name, customerPhone: a.customer_phone, serviceName: a.service_name, price: Number(a.price) }));
+
+            const { data: restockData } = await supabaseClient.from('restock_expenses').select('*').order('id', { ascending: false });
+            if (restockData && restockData.length) restockExpenses.value = restockData.map(r => ({ ...r, itemId: r.item_id, itemName: r.item_name, cost: Number(r.cost) }));
+
+            const { data: acadData } = await supabaseClient.from('academy_articles').select('*').order('id', { ascending: false });
+            if (acadData && acadData.length) academyArticles.value = acadData.map(ac => ({ ...ac, proTip: ac.pro_tip }));
+          } catch (err) {
+            console.warn('Gagal sync Supabase, menggunakan data lokal:', err);
+          }
+        };
+
+        // Watchers LocalStorage Backup
         watch(inventory, v => localStorage.setItem('pixie_inventory', JSON.stringify(v)), { deep: true });
         watch(products, v => localStorage.setItem('pixie_products', JSON.stringify(v)), { deep: true });
         watch(customers, v => localStorage.setItem('pixie_customers', JSON.stringify(v)), { deep: true });
@@ -1248,78 +1231,65 @@
         const lowStockCount = computed(() => inventory.value.filter(i => i.stock <= i.minStock).length);
         const pendingAppointments = computed(() => appointments.value.filter(a => a.status !== 'Completed'));
         const completedAppointments = computed(() => appointments.value.filter(a => a.status === 'Completed'));
-        const totalRestockExpenses = computed(() => restockExpenses.value.reduce((acc, c) => acc + (Number(c.cost) || 0), 0));
+        const allTimeRevenue = computed(() => completedAppointments.value.reduce((acc, a) => acc + (Number(a.price) || 0), 0));
         const getCustomerHistory = (custName) => appointments.value.filter(a => a.customerName === custName);
+        const filteredAcademy = computed(() => selectedCategory.value === 'Semua' ? academyArticles.value : academyArticles.value.filter(a => a.category === selectedCategory.value));
 
         // Helper HPP
         const calculateTotalHpp = (materials = []) => materials.reduce((acc, m) => acc + (Number(m.cost) || 0), 0);
         const calculateMargin = (selling, hpp) => selling ? (((selling - hpp) / selling) * 100).toFixed(1) : 0;
 
-        // FINANCIAL REPORT GENERATOR
-        const getFilteredReport = (period) => {
-          const now = new Date('2026-08-20');
-          const todayStr = '2026-08-20';
-          const currentMonthStr = '2026-08';
-          const currentYearStr = '2026';
+        // 2. FINANCIAL REPORT DATE FILTER & DYNAMIC CALCULATION
+        const reportFilterMode = ref('monthly'); // 'daily' | 'monthly' | 'yearly' | 'custom'
+        const filterDailyDate = ref('2026-08-20');
+        const filterMonthDate = ref('2026-08');
+        const filterYearDate = ref('2026');
+        const filterStartDate = ref('2026-08-01');
+        const filterEndDate = ref('2026-08-31');
 
-          let matchedAppointments = [];
+        const activeFinancialReport = computed(() => {
+          let matchedApps = [];
           let matchedRestocks = [];
 
-          if (period === 'daily') {
-            matchedAppointments = completedAppointments.value.filter(a => a.date === todayStr);
-            matchedRestocks = restockExpenses.value.filter(r => r.date === todayStr);
-          } else if (period === 'weekly') {
-            const sevenDaysAgo = new Date(now);
-            sevenDaysAgo.setDate(now.getDate() - 7);
-            matchedAppointments = completedAppointments.value.filter(a => new Date(a.date) >= sevenDaysAgo && new Date(a.date) <= now);
-            matchedRestocks = restockExpenses.value.filter(r => new Date(r.date) >= sevenDaysAgo && new Date(r.date) <= now);
-          } else if (period === 'monthly') {
-            matchedAppointments = completedAppointments.value.filter(a => a.date && a.date.startsWith(currentMonthStr));
-            matchedRestocks = restockExpenses.value.filter(r => r.date && r.date.startsWith(currentMonthStr));
-          } else if (period === 'yearly') {
-            matchedAppointments = completedAppointments.value.filter(a => a.date && a.date.startsWith(currentYearStr));
-            matchedRestocks = restockExpenses.value.filter(r => r.date && r.date.startsWith(currentYearStr));
+          if (reportFilterMode.value === 'daily') {
+            matchedApps = completedAppointments.value.filter(a => a.date === filterDailyDate.value);
+            matchedRestocks = restockExpenses.value.filter(r => r.date === filterDailyDate.value);
+          } else if (reportFilterMode.value === 'monthly') {
+            matchedApps = completedAppointments.value.filter(a => a.date && a.date.startsWith(filterMonthDate.value));
+            matchedRestocks = restockExpenses.value.filter(r => r.date && r.date.startsWith(filterMonthDate.value));
+          } else if (reportFilterMode.value === 'yearly') {
+            matchedApps = completedAppointments.value.filter(a => a.date && a.date.startsWith(filterYearDate.value));
+            matchedRestocks = restockExpenses.value.filter(r => r.date && r.date.startsWith(filterYearDate.value));
+          } else if (reportFilterMode.value === 'custom') {
+            matchedApps = completedAppointments.value.filter(a => a.date >= filterStartDate.value && a.date <= filterEndDate.value);
+            matchedRestocks = restockExpenses.value.filter(r => r.date >= filterStartDate.value && r.date <= filterEndDate.value);
           }
 
-          const revenue = matchedAppointments.reduce((acc, a) => acc + (Number(a.price) || 0), 0);
-          const restockCost = matchedRestocks.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
-          const netProfit = revenue - restockCost;
-          const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : 0;
+          const revenue = matchedApps.reduce((acc, a) => acc + (Number(a.price) || 0), 0);
+          const expenses = matchedRestocks.reduce((acc, r) => acc + (Number(r.cost) || 0), 0);
+          const netProfit = revenue - expenses;
+          const margin = revenue > 0 ? ((netProfit / revenue) * 100).toFixed(1) : '0.0';
 
           return {
             revenue,
-            expenses: restockCost,
+            expenses,
             netProfit,
             margin,
-            treatmentCount: matchedAppointments.length,
-            restockCount: matchedRestocks.length,
-            incomeList: matchedAppointments,
+            incomeList: matchedApps,
             expenseList: matchedRestocks
           };
-        };
+        });
 
-        const todayReport = computed(() => getFilteredReport('daily'));
-        const currentMonthReport = computed(() => getFilteredReport('monthly'));
-        const activeReportData = computed(() => getFilteredReport(reportPeriod.value));
-
-        // RESTOCK REKAP COMPUTED UNTUK TAB INVENTARIS
+        // REKAP RESTOCK INVENTARIS
+        const restockFilterPeriod = ref('monthly');
         const filteredRestockList = computed(() => {
-          const now = new Date('2026-08-20');
-          const todayStr = '2026-08-20';
-          const currentMonthStr = '2026-08';
-          const currentYearStr = '2026';
-
-          if (restockFilterPeriod.value === 'daily') {
-            return restockExpenses.value.filter(r => r.date === todayStr);
-          } else if (restockFilterPeriod.value === 'weekly') {
-            const sevenDaysAgo = new Date(now);
-            sevenDaysAgo.setDate(now.getDate() - 7);
-            return restockExpenses.value.filter(r => new Date(r.date) >= sevenDaysAgo && new Date(r.date) <= now);
-          } else if (restockFilterPeriod.value === 'monthly') {
-            return restockExpenses.value.filter(r => r.date && r.date.startsWith(currentMonthStr));
-          } else {
-            return restockExpenses.value.filter(r => r.date && r.date.startsWith(currentYearStr));
-          }
+          const today = '2026-08-20';
+          const month = '2026-08';
+          const year = '2026';
+          if (restockFilterPeriod.value === 'daily') return restockExpenses.value.filter(r => r.date === today);
+          if (restockFilterPeriod.value === 'monthly') return restockExpenses.value.filter(r => r.date && r.date.startsWith(month));
+          if (restockFilterPeriod.value === 'yearly') return restockExpenses.value.filter(r => r.date && r.date.startsWith(year));
+          return restockExpenses.value;
         });
 
         const restockSummary = computed(() => {
@@ -1331,25 +1301,68 @@
           };
         });
 
-        // CHART RENDERING
-        const initChart = () => {
+        // 3. CHART.JS 100% DINAMIS DARI DATA AKTUAL
+        const updateFinancialChart = () => {
           const ctx = document.getElementById('financialChart');
           if (!ctx) return;
           if (chartInstance) chartInstance.destroy();
 
-          let labels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu (Current)'];
-          let revenueData = [3200000, 4100000, 4800000, 5200000, 6100000, 6800000, 7100000, 3450000];
-          let expenseData = [900000, 1100000, 1200000, 1300000, 1400000, 1500000, 1600000, 270000];
-          let profitData = [2300000, 3000000, 3600000, 3900000, 4700000, 5300000, 5500000, 3180000];
+          const report = activeFinancialReport.value;
+          let labels = [];
+          let revDataset = [];
+          let expDataset = [];
+          let profitDataset = [];
+
+          if (reportFilterMode.value === 'yearly') {
+            // Group by 12 Bulan
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            labels = monthNames;
+            revDataset = Array(12).fill(0);
+            expDataset = Array(12).fill(0);
+            profitDataset = Array(12).fill(0);
+
+            report.incomeList.forEach(a => {
+              const m = new Date(a.date).getMonth();
+              if (m >= 0 && m < 12) revDataset[m] += Number(a.price) || 0;
+            });
+            report.expenseList.forEach(r => {
+              const m = new Date(r.date).getMonth();
+              if (m >= 0 && m < 12) expDataset[m] += Number(r.cost) || 0;
+            });
+            for (let i = 0; i < 12; i++) profitDataset[i] = revDataset[i] - expDataset[i];
+          } else {
+            // Group by Tanggal yang ada transaksi
+            const allDatesSet = new Set([
+              ...report.incomeList.map(a => a.date),
+              ...report.expenseList.map(r => r.date)
+            ]);
+            const sortedDates = Array.from(allDatesSet).sort();
+
+            if (sortedDates.length === 0) {
+              labels = ['Tidak ada data'];
+              revDataset = [0];
+              expDataset = [0];
+              profitDataset = [0];
+            } else {
+              labels = sortedDates;
+              sortedDates.forEach(d => {
+                const dayRev = report.incomeList.filter(a => a.date === d).reduce((acc, a) => acc + Number(a.price), 0);
+                const dayExp = report.expenseList.filter(r => r.date === d).reduce((acc, r) => acc + Number(r.cost), 0);
+                revDataset.push(dayRev);
+                expDataset.push(dayExp);
+                profitDataset.push(dayRev - dayExp);
+              });
+            }
+          }
 
           chartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
               labels,
               datasets: [
-                { label: 'Revenue (Omset)', data: revenueData, backgroundColor: '#fb7185', borderRadius: 8 },
-                { label: 'Expense (Restock)', data: expenseData, backgroundColor: '#f43f5e', borderRadius: 8 },
-                { label: 'Net Profit', data: profitData, backgroundColor: '#10b981', borderRadius: 8 }
+                { label: 'Revenue (Omset)', data: revDataset, backgroundColor: '#fb7185', borderRadius: 8 },
+                { label: 'Expense (Restock)', data: expDataset, backgroundColor: '#f43f5e', borderRadius: 8 },
+                { label: 'Net Profit', data: profitDataset, backgroundColor: '#10b981', borderRadius: 8 }
               ]
             },
             options: {
@@ -1361,17 +1374,22 @@
           });
         };
 
-        const setReportPeriod = (p) => {
-          reportPeriod.value = p;
-          nextTick(() => initChart());
+        const setFilterMode = (mode) => {
+          reportFilterMode.value = mode;
+          nextTick(() => updateFinancialChart());
+        };
+
+        const onDateFilterChanged = () => {
+          nextTick(() => updateFinancialChart());
         };
 
         const switchTab = (tabId) => {
           activeTab.value = tabId;
-          if (tabId === 'reports') nextTick(() => initChart());
+          if (tabId === 'reports') nextTick(() => updateFinancialChart());
         };
 
-        // RESTOCK ACTION
+        // 4. CRUD ACTIONS DENGAN SUPABASE CLOUD PUSH
+        // RESTOCK
         const targetRestockItem = ref(null);
         const restockForm = ref({ qty: 10, cost: 50000, notes: '' });
 
@@ -1381,10 +1399,12 @@
           showRestockModal.value = true;
         };
 
-        const submitRestock = () => {
+        const submitRestock = async () => {
           if (!targetRestockItem.value) return;
-          targetRestockItem.value.stock = Number((targetRestockItem.value.stock + parseFloat(restockForm.value.qty)).toFixed(2));
-          restockExpenses.value.unshift({
+          const newStock = Number((targetRestockItem.value.stock + parseFloat(restockForm.value.qty)).toFixed(2));
+          targetRestockItem.value.stock = newStock;
+
+          const newRestockRecord = {
             id: Date.now(),
             itemId: targetRestockItem.value.id,
             itemName: targetRestockItem.value.name,
@@ -1393,17 +1413,36 @@
             cost: Number(restockForm.value.cost),
             date: '2026-08-20',
             notes: restockForm.value.notes
-          });
+          };
+          restockExpenses.value.unshift(newRestockRecord);
+
+          // Push ke Supabase DB
+          if (supabaseClient) {
+            await supabaseClient.from('inventory').update({ stock: newStock }).eq('id', targetRestockItem.value.id);
+            await supabaseClient.from('restock_expenses').insert([{
+              item_id: targetRestockItem.value.id,
+              item_name: targetRestockItem.value.name,
+              qty: restockForm.value.qty,
+              unit: targetRestockItem.value.unit,
+              cost: Number(restockForm.value.cost),
+              date: '2026-08-20',
+              notes: restockForm.value.notes
+            }]);
+          }
+
           showRestockModal.value = false;
+          nextTick(() => updateFinancialChart());
         };
 
-        const deleteRestockHistory = (id) => {
-          if (confirm('Hapus catatan riwayat restock ini?')) {
+        const deleteRestockHistory = async (id) => {
+          if (confirm('Hapus riwayat restock ini?')) {
             restockExpenses.value = restockExpenses.value.filter(r => r.id !== id);
+            if (supabaseClient) await supabaseClient.from('restock_expenses').delete().eq('id', id);
+            nextTick(() => updateFinancialChart());
           }
         };
 
-        // CUSTOMER ACTIONS
+        // CUSTOMERS
         const customerForm = ref({ id: null, name: '', phone: '', sizing: '', notes: '' });
         const openAddCustomerModal = () => {
           isEditingCustomer.value = false;
@@ -1415,16 +1454,39 @@
           customerForm.value = { ...c };
           showCustomerModal.value = true;
         };
-        const saveCustomer = () => {
+        const saveCustomer = async () => {
           if (isEditingCustomer.value) {
             const idx = customers.value.findIndex(c => c.id === customerForm.value.id);
             if (idx !== -1) customers.value[idx] = { ...customerForm.value };
+            if (supabaseClient) {
+              await supabaseClient.from('customers').update({
+                name: customerForm.value.name,
+                phone: customerForm.value.phone,
+                sizing: customerForm.value.sizing,
+                notes: customerForm.value.notes
+              }).eq('id', customerForm.value.id);
+            }
           } else {
-            customers.value.unshift({ id: Date.now(), ...customerForm.value });
+            const newCust = { id: Date.now(), ...customerForm.value };
+            customers.value.unshift(newCust);
+            if (supabaseClient) {
+              const { data } = await supabaseClient.from('customers').insert([{
+                name: customerForm.value.name,
+                phone: customerForm.value.phone,
+                sizing: customerForm.value.sizing,
+                notes: customerForm.value.notes
+              }]).select();
+              if (data && data[0]) newCust.id = data[0].id;
+            }
           }
           showCustomerModal.value = false;
         };
-        const deleteCustomer = (id) => { customers.value = customers.value.filter(c => c.id !== id); };
+        const deleteCustomer = async (id) => {
+          if (confirm('Hapus customer ini?')) {
+            customers.value = customers.value.filter(c => c.id !== id);
+            if (supabaseClient) await supabaseClient.from('customers').delete().eq('id', id);
+          }
+        };
 
         const bookWithCustomer = (cust) => {
           selectedCustomerObj.value = cust;
@@ -1432,7 +1494,7 @@
           openAddBookingModal();
         };
 
-        // APPOINTMENT ACTIONS
+        // APPOINTMENTS
         const selectedCustomerObj = ref(null);
         const selectedProductObj = ref(null);
         const appointmentForm = ref({ id: null, date: '2026-08-20', time: '10:00', customPrice: 0, status: 'Scheduled' });
@@ -1462,13 +1524,13 @@
           if (selectedProductObj.value) appointmentForm.value.customPrice = selectedProductObj.value.sellingPrice;
         };
 
-        const saveAppointment = () => {
+        const saveAppointment = async () => {
           if (!selectedCustomerObj.value || !selectedProductObj.value) return;
 
           if (isEditingAppointment.value) {
             const idx = appointments.value.findIndex(a => a.id === appointmentForm.value.id);
             if (idx !== -1) {
-              appointments.value[idx] = {
+              const updatedApp = {
                 ...appointments.value[idx],
                 customerName: selectedCustomerObj.value.name,
                 customerPhone: selectedCustomerObj.value.phone,
@@ -1479,9 +1541,23 @@
                 time: appointmentForm.value.time,
                 status: appointmentForm.value.status
               };
+              appointments.value[idx] = updatedApp;
+
+              if (supabaseClient) {
+                await supabaseClient.from('appointments').update({
+                  customer_name: updatedApp.customerName,
+                  customer_phone: updatedApp.customerPhone,
+                  service_name: updatedApp.serviceName,
+                  price: updatedApp.price,
+                  duration: updatedApp.duration,
+                  date: updatedApp.date,
+                  time: updatedApp.time,
+                  status: updatedApp.status
+                }).eq('id', updatedApp.id);
+              }
             }
           } else {
-            appointments.value.unshift({
+            const newApp = {
               id: Date.now(),
               customerName: selectedCustomerObj.value.name,
               customerPhone: selectedCustomerObj.value.phone,
@@ -1491,28 +1567,61 @@
               date: appointmentForm.value.date,
               time: appointmentForm.value.time,
               status: 'Scheduled'
-            });
+            };
+            appointments.value.unshift(newApp);
+
+            if (supabaseClient) {
+              const { data } = await supabaseClient.from('appointments').insert([{
+                customer_name: newApp.customerName,
+                customer_phone: newApp.customerPhone,
+                service_name: newApp.serviceName,
+                price: newApp.price,
+                duration: newApp.duration,
+                date: newApp.date,
+                time: newApp.time,
+                status: 'Scheduled'
+              }]).select();
+              if (data && data[0]) newApp.id = data[0].id;
+            }
           }
           showBookingModal.value = false;
+          nextTick(() => updateFinancialChart());
         };
 
-        const completeAppointment = (id) => {
+        const completeAppointment = async (id) => {
           const target = appointments.value.find(a => a.id === id);
           if (target && target.status !== 'Completed') {
             target.status = 'Completed';
+            if (supabaseClient) {
+              await supabaseClient.from('appointments').update({ status: 'Completed' }).eq('id', id);
+            }
+
+            // Auto deduct stok inventaris
             const prod = products.value.find(p => p.name === target.serviceName);
             if (prod && prod.materials) {
-              prod.materials.forEach(mat => {
+              for (const mat of prod.materials) {
                 const invItem = inventory.value.find(i => i.name.toLowerCase().includes(mat.name.toLowerCase()));
                 if (invItem) {
-                  invItem.stock = Math.max(0, Number((invItem.stock - (mat.qty || 1)).toFixed(2)));
+                  const updatedStock = Math.max(0, Number((invItem.stock - (mat.qty || 1)).toFixed(2)));
+                  invItem.stock = updatedStock;
+                  if (supabaseClient) {
+                    await supabaseClient.from('inventory').update({ stock: updatedStock }).eq('id', invItem.id);
+                  }
                 }
-              });
+              }
             }
+            nextTick(() => updateFinancialChart());
           }
         };
 
-        const deleteAppointment = (id) => { appointments.value = appointments.value.filter(a => a.id !== id); };
+        const deleteAppointment = async (id) => {
+          if (confirm('Hapus jadwal ini?')) {
+            appointments.value = appointments.value.filter(a => a.id !== id);
+            if (supabaseClient) await supabaseClient.from('appointments').delete().eq('id', id);
+            nextTick(() => updateFinancialChart());
+          }
+        };
+
         const openInvoice = (app) => { activeInvoice.value = app; };
         const printReceipt = () => window.print();
         const saveReceiptPng = () => {
@@ -1530,183 +1639,218 @@
           return `https://wa.me/${phone}?text=${encodeURIComponent('Halo Kak ' + app.customerName + '! Reminder appointment kuku Pixie Studio untuk ' + app.serviceName + ' tgl ' + app.date + ' jam ' + app.time)}`;
         };
 
-        // PRODUCT & HPP ACTIONS
-        const productForm = ref({
-          id: null,
-          name: '',
-          category: 'Nail Art Custom',
-          duration: 60,
-          sellingPrice: 85000,
-          materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }]
-        });
-
-        const openAddProductModal = () => {
-          isEditingProduct.value = false;
-          productForm.value = {
-            id: null,
-            name: '',
-            category: 'Nail Art Custom',
-            duration: 60,
-            sellingPrice: 85000,
-            materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }]
-          };
-          showProductModal.value = true;
-        };
-
-        const editProduct = (p) => {
-          isEditingProduct.value = true;
-          productForm.value = JSON.parse(JSON.stringify(p));
-          showProductModal.value = true;
-        };
-
-        const addProductMaterial = () => productForm.value.materials.push({ name: '', qty: 1, unit: 'pcs', cost: 0 });
-        const removeProductMaterial = (idx) => productForm.value.materials.splice(idx, 1);
-
-        const saveProduct = () => {
-          if (isEditingProduct.value) {
-            const idx = products.value.findIndex(p => p.id === productForm.value.id);
-            if (idx !== -1) products.value[idx] = { ...productForm.value };
-          } else {
-            products.value.unshift({ id: Date.now(), ...productForm.value });
-          }
-          showProductModal.value = false;
-        };
-
-        const deleteProduct = (id) => { products.value = products.value.filter(p => p.id !== id); };
-
-        // INVENTORY ACTIONS
-        const inventoryForm = ref({
-          id: null,
-          name: '',
-          category: 'Gel Polish',
-          unit: 'ml',
-          stock: 10,
-          minStock: 2,
-          costPerUnit: 3000
-        });
-
+        // INVENTORY CRUD
+        const inventoryForm = ref({ id: null, name: '', category: 'Gel Polish', unit: 'ml', stock: 10, minStock: 2, costPerUnit: 3000 });
         const openAddInventoryModal = () => {
           isEditingInventory.value = false;
           inventoryForm.value = { id: null, name: '', category: 'Gel Polish', unit: 'ml', stock: 10, minStock: 2, costPerUnit: 3000 };
           showInventoryModal.value = true;
         };
-
         const editInventory = (inv) => {
           isEditingInventory.value = true;
           inventoryForm.value = { ...inv };
           showInventoryModal.value = true;
         };
-
-        const saveInventory = () => {
+        const saveInventory = async () => {
           if (isEditingInventory.value) {
             const idx = inventory.value.findIndex(i => i.id === inventoryForm.value.id);
             if (idx !== -1) inventory.value[idx] = { ...inventoryForm.value };
+            if (supabaseClient) {
+              await supabaseClient.from('inventory').update({
+                name: inventoryForm.value.name,
+                category: inventoryForm.value.category,
+                unit: inventoryForm.value.unit,
+                stock: inventoryForm.value.stock,
+                min_stock: inventoryForm.value.minStock,
+                cost_per_unit: inventoryForm.value.costPerUnit
+              }).eq('id', inventoryForm.value.id);
+            }
           } else {
-            inventory.value.unshift({ id: Date.now(), ...inventoryForm.value });
+            const newInv = { id: Date.now(), ...inventoryForm.value };
+            inventory.value.unshift(newInv);
+            if (supabaseClient) {
+              const { data } = await supabaseClient.from('inventory').insert([{
+                name: inventoryForm.value.name,
+                category: inventoryForm.value.category,
+                unit: inventoryForm.value.unit,
+                stock: inventoryForm.value.stock,
+                min_stock: inventoryForm.value.minStock,
+                cost_per_unit: inventoryForm.value.costPerUnit
+              }]).select();
+              if (data && data[0]) newInv.id = data[0].id;
+            }
           }
           showInventoryModal.value = false;
         };
+        const deleteInventory = async (id) => {
+          if (confirm('Hapus bahan baku ini?')) {
+            inventory.value = inventory.value.filter(i => i.id !== id);
+            if (supabaseClient) await supabaseClient.from('inventory').delete().eq('id', id);
+          }
+        };
 
-        const deleteInventory = (id) => { inventory.value = inventory.value.filter(i => i.id !== id); };
+        // SERVICES & HPP CRUD
+        const productForm = ref({ id: null, name: '', category: 'Nail Art Custom', duration: 60, sellingPrice: 85000, materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }] });
+        const openAddProductModal = () => {
+          isEditingProduct.value = false;
+          productForm.value = { id: null, name: '', category: 'Nail Art Custom', duration: 60, sellingPrice: 85000, materials: [{ name: 'Base Coat Gel', qty: 0.2, unit: 'ml', cost: 600 }] };
+          showProductModal.value = true;
+        };
+        const editProduct = (p) => {
+          isEditingProduct.value = true;
+          productForm.value = JSON.parse(JSON.stringify(p));
+          showProductModal.value = true;
+        };
+        const addProductMaterial = () => productForm.value.materials.push({ name: '', qty: 1, unit: 'pcs', cost: 0 });
+        const removeProductMaterial = (idx) => productForm.value.materials.splice(idx, 1);
+        const saveProduct = async () => {
+          if (isEditingProduct.value) {
+            const idx = products.value.findIndex(p => p.id === productForm.value.id);
+            if (idx !== -1) products.value[idx] = { ...productForm.value };
+            if (supabaseClient) {
+              await supabaseClient.from('services').update({
+                name: productForm.value.name,
+                category: productForm.value.category,
+                duration: productForm.value.duration,
+                selling_price: productForm.value.sellingPrice,
+                materials: productForm.value.materials
+              }).eq('id', productForm.value.id);
+            }
+          } else {
+            const newP = { id: Date.now(), ...productForm.value };
+            products.value.unshift(newP);
+            if (supabaseClient) {
+              const { data } = await supabaseClient.from('services').insert([{
+                name: productForm.value.name,
+                category: productForm.value.category,
+                duration: productForm.value.duration,
+                selling_price: productForm.value.sellingPrice,
+                materials: productForm.value.materials
+              }]).select();
+              if (data && data[0]) newP.id = data[0].id;
+            }
+          }
+          showProductModal.value = false;
+        };
+        const deleteProduct = async (id) => {
+          if (confirm('Hapus layanan treatment ini?')) {
+            products.value = products.value.filter(p => p.id !== id);
+            if (supabaseClient) await supabaseClient.from('services').delete().eq('id', id);
+          }
+        };
 
-        // ACADEMY CRUD ACTIONS
-        const academyForm = ref({
-          id: null,
-          title: '',
-          category: 'SOP & Sanitasi',
-          image: '',
-          summary: '',
-          proTip: ''
-        });
+        // ACADEMY CRUD
+        const academyForm = ref({ id: null, title: '', category: 'SOP & Sanitasi', image: '', summary: '', proTip: '' });
         const academyStepsRaw = ref('');
-
         const openAddAcademyModal = () => {
           isEditingAcademy.value = false;
-          academyForm.value = {
-            id: null,
-            title: '',
-            category: 'SOP & Sanitasi',
-            image: '',
-            summary: '',
-            proTip: ''
-          };
+          academyForm.value = { id: null, title: '', category: 'SOP & Sanitasi', image: '', summary: '', proTip: '' };
           academyStepsRaw.value = '';
           showAcademyModal.value = true;
         };
-
         const editAcademy = (item) => {
           isEditingAcademy.value = true;
           academyForm.value = { ...item };
           academyStepsRaw.value = item.steps ? item.steps.join('\n') : '';
           showAcademyModal.value = true;
         };
-
-        const saveAcademyModule = () => {
+        const saveAcademyModule = async () => {
           if (!academyForm.value.title) return;
           const parsedSteps = academyStepsRaw.value.split('\n').map(s => s.trim()).filter(Boolean);
 
           if (isEditingAcademy.value) {
             const idx = academyArticles.value.findIndex(a => a.id === academyForm.value.id);
-            if (idx !== -1) {
-              academyArticles.value[idx] = {
-                ...academyForm.value,
-                steps: parsedSteps
-              };
+            if (idx !== -1) academyArticles.value[idx] = { ...academyForm.value, steps: parsedSteps };
+            if (supabaseClient) {
+              await supabaseClient.from('academy_articles').update({
+                title: academyForm.value.title,
+                category: academyForm.value.category,
+                image: academyForm.value.image,
+                summary: academyForm.value.summary,
+                steps: parsedSteps,
+                pro_tip: academyForm.value.proTip
+              }).eq('id', academyForm.value.id);
             }
           } else {
-            academyArticles.value.unshift({
+            const newA = {
               id: Date.now(),
               title: academyForm.value.title,
               category: academyForm.value.category,
               image: academyForm.value.image || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=600&q=80',
               summary: academyForm.value.summary,
               steps: parsedSteps,
-              proTip: academyForm.value.proTip || 'Pastikan sanitasi dan prosedur steril terjaga.'
-            });
+              proTip: academyForm.value.proTip || 'Pastikan sanitasi terjaga.'
+            };
+            academyArticles.value.unshift(newA);
+            if (supabaseClient) {
+              const { data } = await supabaseClient.from('academy_articles').insert([{
+                title: newA.title,
+                category: newA.category,
+                image: newA.image,
+                summary: newA.summary,
+                steps: newA.steps,
+                pro_tip: newA.proTip
+              }]).select();
+              if (data && data[0]) newA.id = data[0].id;
+            }
           }
           showAcademyModal.value = false;
         };
-
-        const deleteAcademy = (id) => {
+        const deleteAcademy = async (id) => {
           if (confirm('Hapus modul SOP ini?')) {
             academyArticles.value = academyArticles.value.filter(a => a.id !== id);
+            if (supabaseClient) await supabaseClient.from('academy_articles').delete().eq('id', id);
           }
         };
+
+        onMounted(async () => {
+          initSupabase();
+          await fetchAllDataFromDB();
+          if (activeTab.value === 'reports') updateFinancialChart();
+        });
 
         return {
           activeTab,
           switchTab,
           navItems,
           currentTabTitle,
+          supabaseConfig,
+          isDbConnected,
+          showDbConfigModal,
+          saveSupabaseConfig,
           inventory,
           products,
           customers,
           appointments,
+          academyCategories,
           academyArticles,
           filteredAcademy,
-          academyCategories,
           selectedCategory,
           lowStockCount,
           pendingAppointments,
           completedAppointments,
-          totalRestockExpenses,
+          allTimeRevenue,
           getCustomerHistory,
           calculateTotalHpp,
           calculateMargin,
-          reportPeriod,
-          setReportPeriod,
-          todayReport,
-          currentMonthReport,
-          activeReportData,
+          reportFilterMode,
+          filterDailyDate,
+          filterMonthDate,
+          filterYearDate,
+          filterStartDate,
+          filterEndDate,
+          activeFinancialReport,
+          setFilterMode,
+          onDateFilterChanged,
           restockFilterPeriod,
           filteredRestockList,
           restockSummary,
+          deleteRestockHistory,
           showRestockModal,
           targetRestockItem,
           restockForm,
           openRestockModal,
           submitRestock,
-          deleteRestockHistory,
           showCustomerModal,
           isEditingCustomer,
           customerForm,
@@ -1742,11 +1886,6 @@
           editInventory,
           saveInventory,
           deleteInventory,
-          activeInvoice,
-          openInvoice,
-          printReceipt,
-          saveReceiptPng,
-          generateWaLink,
           showAcademyModal,
           isEditingAcademy,
           academyForm,
@@ -1755,7 +1894,12 @@
           editAcademy,
           saveAcademyModule,
           deleteAcademy,
-          activeDetailModal
+          activeDetailModal,
+          activeInvoice,
+          openInvoice,
+          printReceipt,
+          saveReceiptPng,
+          generateWaLink
         };
       }
     }).mount('#app');
